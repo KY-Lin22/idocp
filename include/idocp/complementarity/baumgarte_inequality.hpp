@@ -4,11 +4,15 @@
 #include "Eigen/Core"
 
 #include "idocp/robot/robot.hpp"
+#include "idocp/constraints/constraint_component_data.hpp"
+#include "idocp/ocp/split_solution.hpp"
+#include "idocp/ocp/kkt_residual.hpp"
+#include "idocp/ocp/kkt_matrix.hpp"
 
 
 namespace idocp {
 class BaumgarteInequality {
-private:
+public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   BaumgarteInequality(const Robot& robot, const double barrier=1.0e-04,
@@ -40,10 +44,11 @@ private:
                            const ConstraintComponentData& data,
                            KKTResidual& kkt_residual);
 
-public:
+private:
   int num_point_contacts_, dimc_; 
   double barrier_, fraction_to_boundary_rate_;
-  Eigen::MatrixXd dbaum_da_, dbaum_dv_, dbaum_da_;
+  Eigen::VectorXd Baumgarte_residual_;
+  Eigen::MatrixXd dBaumgarte_dq_, dBaumgarte_dv_, dBaumgarte_da_;
 
 };
 

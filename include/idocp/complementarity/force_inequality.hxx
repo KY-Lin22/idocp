@@ -31,9 +31,9 @@ inline ForceInequality::~ForceInequality() {
 
 inline bool ForceInequality::isFeasible(const Robot& robot, 
                                         const SplitSolution& s) {
+  constexpr int kDimf = 5;
+  constexpr int kDimf_verbose = 7;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    constexpr int kDimf = 5;
-    constexpr int kDimf_verbose = 7;
     if (s.f_verbose.segment<kDimf>(kDimf_verbose*i).minCoeff() < 0) {
       return false;
     }
@@ -119,6 +119,5 @@ inline void ForceInequality::augmentDualResidual(
     kkt_residual.lf().coeffRef(kDimf_verbose*i+4) -= 2 * dtau * mu_ * mu_ * fz * friction_cone_dual;
   }
 }
-
 
 } // namespace idocp
