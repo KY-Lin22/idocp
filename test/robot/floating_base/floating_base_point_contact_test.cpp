@@ -352,10 +352,9 @@ TEST_F(FloatingBasePointContactTest, baumgarteResidual) {
                                                  pinocchio::LOCAL).linear()
           + baumgarte_weight_on_velocity_ 
               * pinocchio::getFrameVelocity(model_, data_, contact_frame_id_, 
-                                            pinocchio::LOCAL).linear()
-          + baumgarte_weight_on_position_  
-              * (data_.oMf[contact_frame_id_].translation()
-                 -contact.contact_point());
+                                            pinocchio::LOCAL).linear();
+  const auto baumgarte_res_on_position = (data_.oMf[contact_frame_id_].translation() -contact.contact_point());
+  residual_ref(2) += baumgarte_weight_on_position_  * baumgarte_res_on_position(2);
   EXPECT_TRUE(residual.isApprox(residual_ref));
   Eigen::VectorXd residuals = Eigen::VectorXd::Zero(10);
   contact.computeBaumgarteResidual(model_, data_, residuals.segment<3>(5));
@@ -406,10 +405,9 @@ TEST_F(FloatingBasePointContactTest, baumgarteDerivatives) {
           + v_angular_skew * frame_v_partial_dq.template topRows<3>()
           + v_linear_skew * frame_v_partial_dq.template bottomRows<3>()
           + baumgarte_weight_on_velocity_ 
-              * frame_v_partial_dq.template topRows<3>()
-          + baumgarte_weight_on_position_ 
-              * data_.oMf[contact_frame_id_].rotation()
-              * J_frame.template topRows<3>();
+              * frame_v_partial_dq.template topRows<3>();
+  const auto baumgarte_dq_dq = data_.oMf[contact_frame_id_].rotation() * J_frame.template topRows<3>();
+  baum_partial_dq_ref.row(2) += baumgarte_weight_on_position_ * baumgarte_dq_dq.row(2);
   baum_partial_dv_ref 
       = frame_a_partial_dv.template topRows<3>()
           + v_angular_skew * J_frame.template topRows<3>()

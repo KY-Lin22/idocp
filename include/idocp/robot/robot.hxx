@@ -325,18 +325,18 @@ inline void Robot::RNEADerivatives(
   assert(dRNEA_partial_da.cols() == dimv_);
   assert(dRNEA_partial_da.rows() == dimv_);
   if (point_contacts_.empty()) {
-      pinocchio::computeRNEADerivatives(
-          model_, data_, q, v, a, 
-          const_cast<Eigen::MatrixBase<MatrixType1>&>(dRNEA_partial_dq),
-          const_cast<Eigen::MatrixBase<MatrixType2>&>(dRNEA_partial_dv),
-          const_cast<Eigen::MatrixBase<MatrixType3>&>(dRNEA_partial_da));
+    pinocchio::computeRNEADerivatives(
+        model_, data_, q, v, a, 
+        const_cast<Eigen::MatrixBase<MatrixType1>&>(dRNEA_partial_dq),
+        const_cast<Eigen::MatrixBase<MatrixType2>&>(dRNEA_partial_dv),
+        const_cast<Eigen::MatrixBase<MatrixType3>&>(dRNEA_partial_da));
   }
   else {
-      pinocchio::computeRNEADerivatives(
-          model_, data_, q, v, a, fjoint_,
-          const_cast<Eigen::MatrixBase<MatrixType1>&>(dRNEA_partial_dq),
-          const_cast<Eigen::MatrixBase<MatrixType2>&>(dRNEA_partial_dv),
-          const_cast<Eigen::MatrixBase<MatrixType3>&>(dRNEA_partial_da));
+    pinocchio::computeRNEADerivatives(
+        model_, data_, q, v, a, fjoint_,
+        const_cast<Eigen::MatrixBase<MatrixType1>&>(dRNEA_partial_dq),
+        const_cast<Eigen::MatrixBase<MatrixType2>&>(dRNEA_partial_dv),
+        const_cast<Eigen::MatrixBase<MatrixType3>&>(dRNEA_partial_da));
   }
   (const_cast<Eigen::MatrixBase<MatrixType3>&>(dRNEA_partial_da)) 
       .template triangularView<Eigen::StrictlyLower>() 

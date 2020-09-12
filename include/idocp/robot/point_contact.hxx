@@ -33,16 +33,16 @@ inline void PointContact::getContactJacobian(
   pinocchio::getFrameJacobian(model, data, contact_frame_id_,  
                               pinocchio::LOCAL, J_frame_);
   if (transpose) {
-      assert(Jacobian.rows() == dimv_);
-      assert(Jacobian.cols() == 3);
-      const_cast<Eigen::MatrixBase<MatrixType>&> (Jacobian)
-          = J_frame_.topRows<3>().transpose(); 
+    assert(Jacobian.rows() == dimv_);
+    assert(Jacobian.cols() == 3);
+    const_cast<Eigen::MatrixBase<MatrixType>&> (Jacobian)
+        = J_frame_.topRows<3>().transpose(); 
   } 
   else {
-      assert(Jacobian.rows() == 3);
-      assert(Jacobian.cols() == dimv_);
-      const_cast<Eigen::MatrixBase<MatrixType>&> (Jacobian)
-          = J_frame_.topRows<3>(); 
+    assert(Jacobian.rows() == 3);
+    assert(Jacobian.cols() == dimv_);
+    const_cast<Eigen::MatrixBase<MatrixType>&> (Jacobian)
+        = J_frame_.topRows<3>(); 
   }
 }
 
@@ -57,16 +57,16 @@ inline void PointContact::getContactJacobian(
   pinocchio::getFrameJacobian(model, data, contact_frame_id_,  
                               pinocchio::LOCAL, J_frame_);
   if (transpose) {
-      assert(Jacobian.rows() == dimv_);
-      assert(Jacobian.cols() == 3);
-      const_cast<Eigen::MatrixBase<MatrixType>&> (Jacobian)
-          = coeff * J_frame_.topRows<3>().transpose(); 
+    assert(Jacobian.rows() == dimv_);
+    assert(Jacobian.cols() == 3);
+    const_cast<Eigen::MatrixBase<MatrixType>&> (Jacobian)
+        = coeff * J_frame_.topRows<3>().transpose(); 
   } 
   else {
-      assert(Jacobian.rows() == 3);
-      assert(Jacobian.cols() == dimv_);
-      const_cast<Eigen::MatrixBase<MatrixType>&> (Jacobian)
-          = coeff * J_frame_.topRows<3>(); 
+    assert(Jacobian.rows() == 3);
+    assert(Jacobian.cols() == dimv_);
+    const_cast<Eigen::MatrixBase<MatrixType>&> (Jacobian)
+        = coeff * J_frame_.topRows<3>(); 
   }
 }
 
@@ -87,9 +87,9 @@ inline void PointContact::computeBaumgarteResidual(
                                             pinocchio::LOCAL).linear();
   }
   if (baumgarte_weight_on_position_ != 0.) {
-    (const_cast<Eigen::MatrixBase<VectorType>&> (baumgarte_residual)).noalias()
+    (const_cast<Eigen::MatrixBase<VectorType>&> (baumgarte_residual)).coeffRef(2)
         += baumgarte_weight_on_position_
-              * (data.oMf[contact_frame_id_].translation()-contact_point_);
+              * (data.oMf[contact_frame_id_].translation().coeff(2)-contact_point_.coeff(2));
   }
 }
 
@@ -110,9 +110,9 @@ inline void PointContact::computeBaumgarteResidual(
                                                pinocchio::LOCAL).linear();
   }
   if (baumgarte_weight_on_position_ != 0.) {
-    (const_cast<Eigen::MatrixBase<VectorType>&> (baumgarte_residual)).noalias()
+    (const_cast<Eigen::MatrixBase<VectorType>&> (baumgarte_residual)).coeffRef(2)
         += coeff * baumgarte_weight_on_position_
-                 * (data.oMf[contact_frame_id_].translation()-contact_point_);
+                 * (data.oMf[contact_frame_id_].translation().coeff(2)-contact_point_.coeff(2));
   }
 }
 
@@ -161,9 +161,9 @@ inline void PointContact::computeBaumgarteDerivatives(
             * frame_a_partial_da_.template topRows<3>();
   }
   if (baumgarte_weight_on_position_ != 0.) {
-    (const_cast<Eigen::MatrixBase<MatrixType1>&> (baumgarte_partial_dq)).noalias()
+    (const_cast<Eigen::MatrixBase<MatrixType1>&> (baumgarte_partial_dq)).row(2).noalias()
         += baumgarte_weight_on_position_ 
-            * data.oMf[contact_frame_id_].rotation()
+            * data.oMf[contact_frame_id_].rotation().row(2)
             * J_frame_.template topRows<3>();
   }
 }
@@ -219,9 +219,9 @@ inline void PointContact::computeBaumgarteDerivatives(
             * frame_a_partial_da_.template topRows<3>();
   }
   if (baumgarte_weight_on_position_ != 0.) {
-    (const_cast<Eigen::MatrixBase<MatrixType1>&> (baumgarte_partial_dq)).noalias()
+    (const_cast<Eigen::MatrixBase<MatrixType1>&> (baumgarte_partial_dq)).row(2).noalias()
         += coeff * baumgarte_weight_on_position_ 
-            * data.oMf[contact_frame_id_].rotation()
+            * data.oMf[contact_frame_id_].rotation().row(2)
             * J_frame_.template topRows<3>();
   }
 }
