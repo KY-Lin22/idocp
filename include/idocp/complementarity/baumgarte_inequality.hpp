@@ -1,5 +1,5 @@
-#ifndef IDOCP_CONTACT_INEQUALITY_HPP_
-#define IDOCP_CONTACT_INEQUALITY_HPP_
+#ifndef IDOCP_BAUMGARTE_INEQUALITY_HPP_
+#define IDOCP_BAUMGARTE_INEQUALITY_HPP_
 
 #include "Eigen/Core"
 
@@ -7,28 +7,31 @@
 
 
 namespace idocp {
-class ContactInequality {
+class BaumgarteInequality {
 private:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  ContactInequality(const Robot& robot, const double barrier=1.0e-04,
-                    const double fraction_to_boundary_rate=0.995);
+  BaumgarteInequality(const Robot& robot, const double barrier=1.0e-04,
+                      const double fraction_to_boundary_rate=0.995);
 
-  ContactInequality();
+  BaumgarteInequality();
 
-  ~ContactInequality();
+  ~BaumgarteInequality();
 
-  ContactInequality(const ContactInequality&) = default;
+  BaumgarteInequality(const BaumgarteInequality&) = default;
 
-  ContactInequality& operator=(const ContactInequality&) = default;
+  BaumgarteInequality& operator=(const BaumgarteInequality&) = default;
  
-  ContactInequality(ContactInequality&&) noexcept = default;
+  BaumgarteInequality(BaumgarteInequality&&) noexcept = default;
 
-  ContactInequality& operator=(ContactInequality&&) noexcept = default;
+  BaumgarteInequality& operator=(BaumgarteInequality&&) noexcept = default;
 
   bool isFeasible(Robot& robot, const SplitSolution& s);
 
   void setSlackAndDual(Robot& robot, const double dtau, const SplitSolution& s);
+
+  void computePrimalResidual(Robot& robot, const double dtau,  
+                             const SplitSolution& s, Eigen::VectorXd& residual);
 
   void augmentDualResidual(Robot& robot, const double dtau, 
                            KKTResidual& kkt_residual);
@@ -49,12 +52,12 @@ private:
 public:
   int num_point_contacts_, dimc_; 
   double barrier_, fraction_to_boundary_rate_;
-  Eigen::MatrixXd contact_derivatives_;
+  Eigen::MatrixXd baumgarte_derivatives_;
 
 };
 
 } // namespace idocp 
 
-#include "idocp/complementarity/contact_inequality.hxx"
+#include "idocp/complementarity/baumgarte_inequality.hxx"
 
-#endif // IDOCP_CONTACT_INEQUALITY_HPP_ 
+#endif // IDOCP_BAUMGARTE_INEQUALITY_HPP_ 

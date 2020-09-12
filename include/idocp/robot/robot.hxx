@@ -146,15 +146,11 @@ inline void Robot::updateKinematics(
 template <typename VectorType>
 inline void Robot::computeBaumgarteResidual(
     const Eigen::MatrixBase<VectorType>& baumgarte_residual) const {
-  int num_active_contacts = 0;
   for (int i=0; i<point_contacts_.size(); ++i) {
-    if (point_contacts_[i].isActive()) {
-      point_contacts_[i].computeBaumgarteResidual(
-          model_, data_, 
-          (const_cast<Eigen::MatrixBase<VectorType>&>(baumgarte_residual))
-              .template segment<3>(3*num_active_contacts));
-      ++num_active_contacts;
-    }
+    point_contacts_[i].computeBaumgarteResidual(
+        model_, data_, 
+        (const_cast<Eigen::MatrixBase<VectorType>&>(baumgarte_residual))
+            .template segment<3>(3*i));
   }
 }
 
@@ -163,15 +159,11 @@ template <typename VectorType>
 inline void Robot::computeBaumgarteResidual(
     const double coeff, 
     const Eigen::MatrixBase<VectorType>& baumgarte_residual) const {
-  int num_active_contacts = 0;
   for (int i=0; i<point_contacts_.size(); ++i) {
-    if (point_contacts_[i].isActive()) {
-      point_contacts_[i].computeBaumgarteResidual(
-          model_, data_, coeff, 
-          (const_cast<Eigen::MatrixBase<VectorType>&>(baumgarte_residual))
-              .template segment<3>(3*num_active_contacts));
-      ++num_active_contacts;
-    }
+    point_contacts_[i].computeBaumgarteResidual(
+        model_, data_, coeff, 
+        (const_cast<Eigen::MatrixBase<VectorType>&>(baumgarte_residual))
+            .template segment<3>(3*i));
   }
 }
 
@@ -184,19 +176,15 @@ inline void Robot::computeBaumgarteDerivatives(
   assert(baumgarte_partial_dq.cols() == dimv_);
   assert(baumgarte_partial_dv.cols() == dimv_);
   assert(baumgarte_partial_da.cols() == dimv_);
-  int num_active_contacts = 0;
   for (int i=0; i<point_contacts_.size(); ++i) {
-    if (point_contacts_[i].isActive()) {
-      point_contacts_[i].computeBaumgarteDerivatives(
-          model_, data_, 
-          (const_cast<Eigen::MatrixBase<MatrixType1>&>(baumgarte_partial_dq))
-              .block(3*num_active_contacts, 0, 3, dimv_),
-          (const_cast<Eigen::MatrixBase<MatrixType2>&>(baumgarte_partial_dv))
-              .block(3*num_active_contacts, 0, 3, dimv_),
-          (const_cast<Eigen::MatrixBase<MatrixType3>&>(baumgarte_partial_da))
-              .block(3*num_active_contacts, 0, 3, dimv_));
-      ++num_active_contacts;
-    }
+    point_contacts_[i].computeBaumgarteDerivatives(
+        model_, data_, 
+        (const_cast<Eigen::MatrixBase<MatrixType1>&>(baumgarte_partial_dq))
+            .block(3*i, 0, 3, dimv_),
+        (const_cast<Eigen::MatrixBase<MatrixType2>&>(baumgarte_partial_dv))
+            .block(3*i, 0, 3, dimv_),
+        (const_cast<Eigen::MatrixBase<MatrixType3>&>(baumgarte_partial_da))
+            .block(3*i, 0, 3, dimv_));
   }
 }
 
@@ -210,19 +198,15 @@ inline void Robot::computeBaumgarteDerivatives(
   assert(baumgarte_partial_dq.cols() == dimv_);
   assert(baumgarte_partial_dv.cols() == dimv_);
   assert(baumgarte_partial_da.cols() == dimv_);
-  int num_active_contacts = 0;
   for (int i=0; i<point_contacts_.size(); ++i) {
-    if (point_contacts_[i].isActive()) {
-      point_contacts_[i].computeBaumgarteDerivatives(
-          model_, data_, coeff,
-          (const_cast<Eigen::MatrixBase<MatrixType1>&>(baumgarte_partial_dq))
-              .block(3*num_active_contacts, 0, 3, dimv_),
-          (const_cast<Eigen::MatrixBase<MatrixType2>&>(baumgarte_partial_dv))
-              .block(3*num_active_contacts, 0, 3, dimv_),
-          (const_cast<Eigen::MatrixBase<MatrixType3>&>(baumgarte_partial_da))
-              .block(3*num_active_contacts, 0, 3, dimv_));
-      ++num_active_contacts;
-    }
+    point_contacts_[i].computeBaumgarteDerivatives(
+        model_, data_, coeff,
+        (const_cast<Eigen::MatrixBase<MatrixType1>&>(baumgarte_partial_dq))
+            .block(3*i, 0, 3, dimv_),
+        (const_cast<Eigen::MatrixBase<MatrixType2>&>(baumgarte_partial_dv))
+            .block(3*i, 0, 3, dimv_),
+        (const_cast<Eigen::MatrixBase<MatrixType3>&>(baumgarte_partial_da))
+            .block(3*i, 0, 3, dimv_));
   }
 }
 
@@ -242,44 +226,12 @@ inline void Robot::setContactPointsByCurrentKinematics() {
 }
 
 
-inline void Robot::setContactStatus(
-    const std::vector<bool>& is_each_contact_active) {
-  assert(is_each_contact_active.size() == is_each_contact_active_.size());
-  int num_active_contacts = 0;
-  for (int i=0; i<point_contacts_.size(); ++i) {
-    is_each_contact_active_[i] = is_each_contact_active[i];
-    if (is_each_contact_active[i]) {
-      point_contacts_[i].activate();
-      ++num_active_contacts;
-    }
-    else {
-      point_contacts_[i].deactivate();
-    }
-  }
-  num_active_contacts_ = num_active_contacts;
-  dimf_ = 3 * num_active_contacts;
-  if (num_active_contacts_ > 0) {
-    has_active_contacts_ = true;
-  }
-  else {
-    has_active_contacts_ = false;
-  }
-}
-
-
 template <typename VectorType>
 inline void Robot::setContactForces(const Eigen::MatrixBase<VectorType>& f) {
-  int num_active_contacts = 0;
+  assert(f.size() == dimf_);
   for (int i=0; i<point_contacts_.size(); ++i) {
-    if (point_contacts_[i].isActive()) {
-      point_contacts_[i].computeJointForceFromContactForce(
-          f.template segment<3>(3*num_active_contacts), fjoint_);
-      ++num_active_contacts;
-    }
-    else {
-      point_contacts_[i].computeJointForceFromContactForce(
-          Eigen::Vector3d::Zero(), fjoint_);
-    }
+    point_contacts_[i].computeJointForceFromContactForce(
+        f.template segment<3>(3*i), fjoint_);
   }
 }
 
@@ -349,15 +301,11 @@ template <typename MatrixType>
 inline void Robot::dRNEAPartialdFext(
     const Eigen::MatrixBase<MatrixType>& dRNEA_partial_dfext) {
   assert(dRNEA_partial_dfext.rows() == dimv_);
-  int num_active_contacts = 0;
   for (int i=0; i<point_contacts_.size(); ++i) {
-    if (point_contacts_[i].isActive()) {
-      point_contacts_[i].getContactJacobian(
-          model_, data_,  -1, 
-          (const_cast<Eigen::MatrixBase<MatrixType>&>(dRNEA_partial_dfext))
-              .block(0, 3*num_active_contacts, dimv_, 3), true);
-      ++num_active_contacts;
-    }
+    point_contacts_[i].getContactJacobian(
+        model_, data_,  -1, 
+        (const_cast<Eigen::MatrixBase<MatrixType>&>(dRNEA_partial_dfext))
+            .block(0, 3*i, dimv_, 3), true);
   }
 }
 
@@ -448,18 +396,8 @@ inline int Robot::dimv() const {
 }
 
 
-inline int Robot::dimJ() const {
-  return dimJ_;
-}
-
-
-inline int Robot::max_dimf() const {
-  return max_dimf_;
-}
-
-
 inline int Robot::dimf() const {
-  return dimf_;
+  return 3 * point_contacts_.size();
 }
 
 
@@ -473,25 +411,13 @@ inline bool Robot::has_floating_base() const {
 }
 
 
-inline int Robot::max_point_contacts() const {
+inline int Robot::num_point_contacts() const {
   return point_contacts_.size();
 }
 
 
-inline bool Robot::has_active_contacts() const {
-  return has_active_contacts_;
-}
-
-
-inline int Robot::num_active_point_contacts() const {
-  return num_active_contacts_;
-}
-
-
-inline bool Robot::is_contact_active(const int contact_index) const {
-  assert(contact_index >= 0);
-  assert(contact_index < point_contacts_.size());
-  return point_contacts_[contact_index].isActive();
+inline bool Robot::has_contacts() const {
+  return has_contacts_;
 }
 
 

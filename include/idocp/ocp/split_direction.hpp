@@ -58,6 +58,8 @@ public:
 
   const Eigen::VectorBlock<const Eigen::VectorXd> df() const;
 
+  const Eigen::VectorBlock<const Eigen::VectorXd> dr() const;
+
   const Eigen::VectorBlock<const Eigen::VectorXd> dq() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> dv() const;

@@ -36,9 +36,9 @@ TEST_F(KKTResidualTest, fixed_base) {
   KKTResidual residual(robot);
   residual.setContactStatus(robot);
   const int dimv = robot.dimv();
-  const int dimf = robot.dimf();
+  const int dimf = 7*robot.max_point_contacts();
   const int dim_passive = robot.dim_passive();
-  const int dimc = robot.dim_passive() + robot.dimf();
+  const int dimc = robot.dim_passive();
   const Eigen::VectorXd Fq_res = Eigen::VectorXd::Random(dimv);
   const Eigen::VectorXd Fv_res = Eigen::VectorXd::Random(dimv);
   const Eigen::VectorXd C_res = Eigen::VectorXd::Random(dimc);
@@ -69,7 +69,7 @@ TEST_F(KKTResidualTest, fixed_base) {
   residual.setZero();
   EXPECT_TRUE(residual.KKT_residual().isZero());
   EXPECT_EQ(residual.dimKKT(), 5*dimv+dimc+dimf);
-  EXPECT_EQ(residual.max_dimKKT(), 5*dimv+2*robot.max_dimf()+robot.dim_passive());
+  EXPECT_EQ(residual.max_dimKKT(), 5*dimv+dimc+dimf);
 }
 
 
@@ -85,9 +85,9 @@ TEST_F(KKTResidualTest, floating_base) {
   KKTResidual residual(robot);
   residual.setContactStatus(robot);
   const int dimv = robot.dimv();
-  const int dimf = robot.dimf();
+  const int dimf = 7*robot.max_point_contacts();
   const int dim_passive = robot.dim_passive();
-  const int dimc = robot.dim_passive() + robot.dimf();
+  const int dimc = robot.dim_passive();
   const Eigen::VectorXd Fq_res = Eigen::VectorXd::Random(dimv);
   const Eigen::VectorXd Fv_res = Eigen::VectorXd::Random(dimv);
   const Eigen::VectorXd C_res = Eigen::VectorXd::Random(dimc);
@@ -118,7 +118,7 @@ TEST_F(KKTResidualTest, floating_base) {
   residual.setZero();
   EXPECT_TRUE(residual.KKT_residual().isZero());
   EXPECT_EQ(residual.dimKKT(), 5*dimv+dimc+dimf);
-  EXPECT_EQ(residual.max_dimKKT(), 5*dimv+2*robot.max_dimf()+robot.dim_passive());
+  EXPECT_EQ(residual.max_dimKKT(), 5*dimv+dimc+dimf);
 }
 
 
@@ -134,9 +134,9 @@ TEST_F(KKTResidualTest, constRef) {
   KKTResidual residual(robot);
   residual.setContactStatus(robot);
   const int dimv = robot.dimv();
-  const int dimf = robot.dimf();
+  const int dimf = 7*robot.max_point_contacts();
   const int dim_passive = robot.dim_passive();
-  const int dimc = robot.dim_passive() + robot.dimf();
+  const int dimc = robot.dim_passive();
   const Eigen::VectorXd Fq_res = Eigen::VectorXd::Random(dimv);
   const Eigen::VectorXd Fv_res = Eigen::VectorXd::Random(dimv);
   const Eigen::VectorXd C_res = Eigen::VectorXd::Random(dimc);
@@ -173,7 +173,6 @@ TEST_F(KKTResidualTest, constRef) {
   EXPECT_TRUE(residual_ref.lf().isApprox(Qf_res));
   EXPECT_TRUE(residual_ref.lq().isApprox(Qq_res));
   EXPECT_TRUE(residual_ref.lv().isApprox(Qv_res));
-
 }
 
 

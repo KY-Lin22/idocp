@@ -55,8 +55,7 @@ public:
   int num_point_contacts_, dimf_, dimc_; 
   double mu_, max_complementarity_, barrier_, fraction_to_boundary_rate_;
   ConstraintComponentData f_data_, h_data_, c_data_;
-  Eigen::VectorXd contact_residual_;
-  Eigen::MatrixXd contact_derivatives_;
+  Eigen::VectorXd Sigma_g_, Sigma_h_, Gamma_w_, Gamma_tt_, Gamma_ts_, Gamma_st_, Gamma_ss_;
 
 };
 

@@ -28,22 +28,16 @@ public:
 
   void setContactStatus(const Robot& robot);
 
-  Eigen::VectorBlock<Eigen::VectorXd> f_active();
-
-  Eigen::VectorBlock<Eigen::VectorXd> mu_active();
-
-  const Eigen::VectorBlock<const Eigen::VectorXd> f_active() const;
-
-  const Eigen::VectorBlock<const Eigen::VectorXd> mu_active() const;
+  void set_f();
 
   int dimc() const;
 
   int dimf() const;
 
-  Eigen::VectorXd lmd, gmm, mu, a, f, q, v, u, beta;
+  Eigen::VectorXd lmd, gmm, mu, a, f, fxp, fxm, fyp, fym, fz, rx, ry, q, v, u, beta;
 
 private:
-  int dimc_, dimf_;
+  int dimc_, dimf_, max_point_contacts_;
 
 };
 

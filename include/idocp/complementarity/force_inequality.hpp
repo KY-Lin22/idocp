@@ -5,6 +5,9 @@
 
 #include "idocp/robot/robot.hpp"
 #include "idocp/constraints/constraint_component_data.hpp"
+#include "idocp/ocp/split_solution.hpp"
+#include "idocp/ocp/kkt_residual.hpp"
+#include "idocp/ocp/kkt_matrix.hpp"
 
 
 namespace idocp {
@@ -30,29 +33,31 @@ private:
 
   bool isFeasible(Robot& robot, const SplitSolution& s);
 
-  void setSlackAndDual(Robot& robot, const double dtau, const SplitSolution& s);
+  void setSlackAndDual(Robot& robot, const double dtau, const SplitSolution& s, 
+                       ConstraintComponentData& data);
+
+  void computePrimalResidual(Robot& robot, const double dtau,  
+                             const SplitSolution& s, 
+                             const ConstraintComponentData& data,
+                             Eigen::VectorXd& residual);
 
   void augmentDualResidual(Robot& robot, const double dtau, 
+                           const SplitSolution& s, 
+                           const ConstraintComponentData& data,
                            KKTResidual& kkt_residual);
 
-  void condenseSlackAndDual(Robot& robot, const double dtau, 
-                            const SplitSolution& s, KKTMatrix& kkt_matrix,
-                            KKTResidual& kkt_residual);
+  // double residualL1Nrom(const Robot& robot, const double dtau, 
+  //                       const SplitSolution& s, 
+  //                       ConstraintComponentData& data) const;
 
-  void computeSlackAndDualDirection(Robot& robot, const double dtau, 
-                                    const SplitDirection& d); 
-
-  double residualL1Nrom(const Robot& robot, const double dtau, 
-                        const SplitSolution& s) const;
-
-  double squaredKKTErrorNorm(const Robot& robot, const double dtau, 
-                             const SplitSolution& s) const;
+  // double squaredKKTErrorNorm(const Robot& robot, const double dtau, 
+  //                            const SplitSolution& s, 
+  //                            ConstraintComponentData& data) const;
 
 public:
   int num_point_contacts_, dimc_; 
   double mu_, barrier_, fraction_to_boundary_rate_;
   ConstraintComponentData data_;
-  Eigen::MatrixXd contact_derivatives_;
 
 };
 

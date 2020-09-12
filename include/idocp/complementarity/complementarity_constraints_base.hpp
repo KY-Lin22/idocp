@@ -7,12 +7,13 @@
 
 
 namespace idocp {
+
+template <typename Derived>
 class ComplementarityConstraintsBase {
 private:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   ComplementarityConstraintsBase(const Robot& robot, 
-                                 const double max_complementarity, 
                                  const double barrier, 
                                  const double fraction_to_boundary_rate);
 
@@ -27,8 +28,6 @@ private:
   ComplementarityConstraintsBase(ComplementarityConstraintsBase&&) noexcept = default;
 
   ComplementarityConstraintsBase& operator=(ComplementarityConstraintsBase&&) noexcept = default;
-
-  bool useKinematics() const override;
 
   bool isFeasible(Robot& robot, const SplitSolution& s);
 

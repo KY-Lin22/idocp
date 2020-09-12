@@ -80,7 +80,6 @@ public:
   
   virtual int dimc() const = 0;
 
-  // Following functions should not be overrided.
   virtual double maxSlackStepSize(
       const ConstraintComponentData& data) const final;
 

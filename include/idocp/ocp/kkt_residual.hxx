@@ -7,13 +7,13 @@ inline KKTResidual::KKTResidual(const Robot& robot)
   : lu(Eigen::VectorXd::Zero(robot.dimv())),
     u_res(Eigen::VectorXd::Zero(robot.dimv())),
     kkt_residual_(Eigen::VectorXd::Zero(
-        5*robot.dimv()+robot.dim_passive()+2*robot.max_dimf())),
+        5*robot.dimv()+robot.dim_passive()+7*robot.max_point_contacts())),
     dimv_(robot.dimv()), 
     dimx_(2*robot.dimv()), 
-    dimf_(robot.dimf()), 
-    dimc_(robot.dim_passive()+robot.dimf()),
-    max_dimKKT_(5*robot.dimv()+robot.dim_passive()+2*robot.max_dimf()),
-    dimKKT_(5*robot.dimv()+robot.dim_passive()+2*robot.dimf()) {
+    dimf_(7*robot.max_point_contacts()), 
+    dimc_(robot.dim_passive()),
+    max_dimKKT_(5*robot.dimv()+robot.dim_passive()+7*robot.max_point_contacts()),
+    dimKKT_(5*robot.dimv()+robot.dim_passive()+7*robot.max_point_contacts()) {
 }
 
 
@@ -35,9 +35,9 @@ inline KKTResidual::~KKTResidual() {
 
 
 inline void KKTResidual::setContactStatus(const Robot& robot) {
-  dimf_ = robot.dimf();
-  dimc_ = robot.dim_passive() + robot.dimf();
-  dimKKT_ = 5*robot.dimv() + robot.dim_passive() + 2*robot.dimf();
+  dimf_ = 7*robot.max_point_contacts();
+  dimc_ = robot.dim_passive();
+  dimKKT_ = 5*robot.dimv() + robot.dim_passive() + 7*robot.max_point_contacts();
 }
 
 

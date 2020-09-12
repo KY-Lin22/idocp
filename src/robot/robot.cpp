@@ -16,12 +16,8 @@ Robot::Robot(const std::string& urdf_file_name)
     fjoint_(),
     dimq_(0),
     dimv_(0),
-    dimJ_(0),
-    max_dimf_(0),
     dimf_(0),
-    num_active_contacts_(0),
-    has_active_contacts_(false),
-    is_each_contact_active_(),
+    has_contacts_(false),
     joint_effort_limit_(),
     joint_velocity_limit_(),
     lower_joint_position_limit_(),
@@ -33,7 +29,6 @@ Robot::Robot(const std::string& urdf_file_name)
   floating_base_ = FloatingBase(model_);
   dimq_ = model_.nq;
   dimv_ = model_.nv;
-  dimJ_ = model_.joints.size();
   initializeJointLimits();
 }
 
@@ -50,12 +45,8 @@ Robot::Robot(const std::string& urdf_file_name,
     fjoint_(),
     dimq_(0),
     dimv_(0),
-    dimJ_(0),
-    max_dimf_(0),
     dimf_(0),
-    num_active_contacts_(0),
-    has_active_contacts_(false),
-    is_each_contact_active_(),
+    has_contacts_(true),
     joint_effort_limit_(),
     joint_velocity_limit_(),
     lower_joint_position_limit_(),
@@ -66,15 +57,13 @@ Robot::Robot(const std::string& urdf_file_name,
     point_contacts_.push_back(PointContact(model_, frame, 
                                            baumgarte_weight_on_velocity,
                                            baumgarte_weight_on_position));
-    is_each_contact_active_.push_back(false);
   }
-  max_dimf_ = 3 * point_contacts_.size();
+  dimf_ = 3 * point_contacts_.size();
   fjoint_ = pinocchio::container::aligned_vector<pinocchio::Force>(
                  model_.joints.size(), pinocchio::Force::Zero());
   floating_base_ = FloatingBase(model_);
   dimq_ = model_.nq;
   dimv_ = model_.nv;
-  dimJ_ = model_.joints.size();
   initializeJointLimits();
 }
 
@@ -88,12 +77,8 @@ Robot::Robot()
     fjoint_(),
     dimq_(0),
     dimv_(0),
-    dimJ_(0),
-    max_dimf_(0),
     dimf_(0),
-    num_active_contacts_(0),
-    has_active_contacts_(false),
-    is_each_contact_active_(),
+    has_contacts_(false),
     joint_effort_limit_(),
     joint_velocity_limit_(),
     lower_joint_position_limit_(),

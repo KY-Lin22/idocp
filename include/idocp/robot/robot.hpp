@@ -68,7 +68,7 @@ public:
   ///
   ~Robot();
 
-  ///
+  ///2*robot.max_dimf())),
   /// @brief Use default copy constructor. 
   ///
   Robot(const Robot&) = default;
@@ -288,14 +288,7 @@ public:
   /// 
   void setContactPointsByCurrentKinematics();
 
-  ///
-  /// @brief Activate and deactivate the each contact.
-  /// @param[in] is_each_contact_active Bool variables representing wheather 
-  /// each contact is active or not.
-  /// 
-  void setContactStatus(const std::vector<bool>& is_each_contact_active);
-
-  ///
+  //
   /// @brief Set contact forces for each active contacts. Before calling this 
   /// function, update contact status by calling setContactStatus().
   /// @param[in] fext The stack of the contact forces represented in the local 
@@ -461,20 +454,8 @@ public:
   int dimv() const;
 
   ///
-  /// @brief Returns the number of joints.
-  /// @return The number of joints.
-  /// 
-  int dimJ() const;
-
-  ///
   /// @brief Returns the maximum dimension of the contacts.
   /// @return The maximum dimension of the contacts.
-  /// 
-  int max_dimf() const;
-
-  ///
-  /// @brief Returns the current dimension of the contacts.
-  /// @return The current dimension of the contacts.
   /// 
   int dimf() const;
 
@@ -496,26 +477,13 @@ public:
   /// @brief Returns the maximum number of the contacts.
   /// @brief The maximum number of the contacts.
   /// 
-  int max_point_contacts() const;
+  int num_point_contacts() const;
 
   ///
   /// @brief Returns true if the robot has active contacts and false if not.
   /// @returns true if the robot has active contacts and false if not.
   /// 
-  bool has_active_contacts() const;
-
-  ///
-  /// @brief Returns the number of the active contacts.
-  /// @brief The number of the active contacts.
-  /// 
-  int num_active_point_contacts() const;
-  
-  ///
-  /// @brief Returns true if contact[contact_index] is active. Returns false if 
-  // contact[contact_index] is not active.
-  /// @param[in] contact_index The contact index of interested.
-  /// 
-  bool is_contact_active(const int contact_index) const;
+  bool has_contacts() const;
 
   ///
   /// @brief Prints the robot model into console.
@@ -536,9 +504,8 @@ private:
   std::vector<PointContact> point_contacts_;
   FloatingBase floating_base_;
   pinocchio::container::aligned_vector<pinocchio::Force> fjoint_;
-  int dimq_, dimv_, dimJ_, max_dimf_, dimf_, num_active_contacts_;
-  bool has_active_contacts_;
-  std::vector<bool> is_each_contact_active_;
+  int dimq_, dimv_, dimf_;
+  bool has_contacts_;
   Eigen::VectorXd joint_effort_limit_, joint_velocity_limit_,
                   lower_joint_position_limit_, upper_joint_position_limit_;
 };

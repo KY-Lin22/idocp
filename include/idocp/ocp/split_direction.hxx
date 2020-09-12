@@ -77,6 +77,11 @@ inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::df() {
 }
 
 
+inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::dr() {
+  return split_direction_.segment(dimx_+dimc_+dimv_, dimf_);
+}
+
+
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::dq() {
   return split_direction_.segment(dimx_+dimc_+dimv_+dimf_, dimv_);
 }

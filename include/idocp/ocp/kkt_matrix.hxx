@@ -11,27 +11,26 @@ inline KKTMatrix::KKTMatrix(const Robot& robot)
   : Quu(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     Fqq(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     Fqq_prev(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
-    C_(Eigen::MatrixXd::Zero(robot.dim_passive()+robot.max_dimf(), 
-                             3*robot.dimv()+robot.max_dimf())),
-    Q_(Eigen::MatrixXd::Zero(3*robot.dimv()+robot.max_dimf(), 
-                             3*robot.dimv()+robot.max_dimf())),
-    Sc_(Eigen::MatrixXd::Zero(robot.dim_passive()+robot.max_dimf(), 
-                              robot.dim_passive()+robot.max_dimf())),
+    C_(Eigen::MatrixXd::Zero(robot.dim_passive(), 
+                             3*robot.dimv()+7*robot.max_point_contacts())),
+    Q_(Eigen::MatrixXd::Zero(3*robot.dimv()+7*robot.max_point_contacts(), 
+                             3*robot.dimv()+7*robot.max_point_contacts())),
+    Sc_(Eigen::MatrixXd::Zero(robot.dim_passive(), robot.dim_passive())),
     Sx_(Eigen::MatrixXd::Zero(2*robot.dimv(), 2*robot.dimv())),
     FMinv_(Eigen::MatrixXd::Zero(2*robot.dimv(), 
-                                 3*robot.dimv()+robot.dim_passive()+2*robot.max_dimf())),
-    C_H_inv_(Eigen::MatrixXd::Zero(robot.dim_passive()+robot.max_dimf(), 
-                                   3*robot.dimv()+robot.max_dimf())),
+                                 3*robot.dimv()+robot.dim_passive()+7*robot.max_point_contacts())),
+    C_H_inv_(Eigen::MatrixXd::Zero(robot.dim_passive(), 
+                                   3*robot.dimv()+7*robot.max_point_contacts())),
     has_floating_base_(robot.has_floating_base()),
     dimv_(robot.dimv()), 
     dimx_(2*robot.dimv()), 
-    dimf_(robot.dimf()), 
-    dimc_(robot.dim_passive()+robot.dimf()),
+    dimf_(7*robot.max_point_contacts()), 
+    dimc_(robot.dim_passive()),
     a_begin_(0),
     f_begin_(robot.dimv()),
-    q_begin_(robot.dimv()+robot.dimf()),
-    v_begin_(2*robot.dimv()+robot.dimf()),
-    dimQ_(3*robot.dimv()+robot.dimf()) {
+    q_begin_(robot.dimv()+7*robot.max_point_contacts()),
+    v_begin_(2*robot.dimv()+7*robot.max_point_contacts()),
+    dimQ_(3*robot.dimv()+7*robot.max_point_contacts()) {
 }
 
 
@@ -63,11 +62,11 @@ inline KKTMatrix::~KKTMatrix() {
 
 
 inline void KKTMatrix::setContactStatus(const Robot& robot) {
-  dimf_ = robot.dimf();
-  dimc_ = robot.dim_passive() + robot.dimf();
-  q_begin_ = robot.dimv() + robot.dimf();
-  v_begin_ = 2*robot.dimv() + robot.dimf();
-  dimQ_ = 3*robot.dimv() + robot.dimf();
+  dimf_ = 7*robot.max_point_contacts();
+  dimc_ = robot.dim_passive();
+  q_begin_ = robot.dimv() + 7*robot.max_point_contacts();
+  v_begin_ = 2*robot.dimv() + 7*robot.max_point_contacts();
+  dimQ_ = 3*robot.dimv() + 7*robot.max_point_contacts();
 }
 
 
