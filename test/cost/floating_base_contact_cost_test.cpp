@@ -46,8 +46,8 @@ protected:
 TEST_F(FloatingBaseContactCostTest, setWeights) {
   const int dimq = robot_.dimq();
   const int dimv = robot_.dimv();
-  const Eigen::VectorXd f_weight = Eigen::VectorXd::Random(robot_.max_dimf());
-  const Eigen::VectorXd f_ref = Eigen::VectorXd::Random(robot_.max_dimf());
+  const Eigen::VectorXd f_weight = Eigen::VectorXd::Random(robot_.dimf());
+  const Eigen::VectorXd f_ref = Eigen::VectorXd::Random(robot_.dimf());
   ContactCost cost(robot_);
   EXPECT_FALSE(cost.useKinematics());
   cost.set_f_weight(f_weight);
@@ -55,16 +55,16 @@ TEST_F(FloatingBaseContactCostTest, setWeights) {
   const Eigen::VectorXd q = Eigen::VectorXd::Random(dimq);
   const Eigen::VectorXd v = Eigen::VectorXd::Random(dimv);
   const Eigen::VectorXd a = Eigen::VectorXd::Random(dimv);
-  const Eigen::VectorXd f = Eigen::VectorXd::Random(robot_.max_dimf());
+  const Eigen::VectorXd f = Eigen::VectorXd::Random(robot_.dimf());
   const Eigen::VectorXd u = Eigen::VectorXd::Random(dimv);
   ASSERT_EQ(robot_.dimf(), 0);
   kkt_res.setContactStatus(robot_);
   kkt_mat.setContactStatus(robot_);
   EXPECT_DOUBLE_EQ(cost.l(robot_, data_, t_, dtau_, s), 0);
-  Eigen::VectorXd lf = Eigen::VectorXd::Zero(robot_.max_dimf());
+  Eigen::VectorXd lf = Eigen::VectorXd::Zero(robot_.dimf());
   cost.lf(robot_, data_, t_, dtau_, s, kkt_res);
   EXPECT_TRUE(kkt_res.lf().isZero());
-  Eigen::MatrixXd lff = Eigen::MatrixXd::Zero(robot_.max_dimf(), robot_.max_dimf());
+  Eigen::MatrixXd lff = Eigen::MatrixXd::Zero(robot_.dimf(), robot_.dimf());
   cost.lff(robot_, data_, t_, dtau_, s, kkt_mat);
   EXPECT_TRUE(kkt_mat.Qff().isZero());
   std::random_device rnd;

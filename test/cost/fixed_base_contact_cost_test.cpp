@@ -46,8 +46,8 @@ protected:
 TEST_F(FixedBaseContactCostTest, setWeights) {
   const int dimq = robot_.dimq();
   const int dimv = robot_.dimv();
-  const Eigen::VectorXd f_weight = Eigen::VectorXd::Random(robot_.max_dimf());
-  const Eigen::VectorXd f_ref = Eigen::VectorXd::Random(robot_.max_dimf());
+  const Eigen::VectorXd f_weight = Eigen::VectorXd::Random(robot_.dimf());
+  const Eigen::VectorXd f_ref = Eigen::VectorXd::Random(robot_.dimf());
   ContactCost cost(robot_);
   EXPECT_FALSE(cost.useKinematics());
   cost.set_f_weight(f_weight);
@@ -55,16 +55,16 @@ TEST_F(FixedBaseContactCostTest, setWeights) {
   s.q = Eigen::VectorXd::Random(dimq);
   s.v = Eigen::VectorXd::Random(dimv);
   s.a = Eigen::VectorXd::Random(dimv);
-  s.f = Eigen::VectorXd::Random(robot_.max_dimf());
+  s.f = Eigen::VectorXd::Random(robot_.dimf());
   s.u = Eigen::VectorXd::Random(dimv);
   ASSERT_EQ(robot_.dimf(), 0);
   kkt_res.setContactStatus(robot_);
   kkt_mat.setContactStatus(robot_);
   EXPECT_DOUBLE_EQ(cost.l(robot_, data_, t_, dtau_, s), 0);
-  Eigen::VectorXd lf = Eigen::VectorXd::Zero(robot_.max_dimf());
+  Eigen::VectorXd lf = Eigen::VectorXd::Zero(robot_.dimf());
   cost.lf(robot_, data_, t_, dtau_, s, kkt_res);
   EXPECT_TRUE(kkt_res.lf().isZero());
-  Eigen::MatrixXd lff = Eigen::MatrixXd::Zero(robot_.max_dimf(), robot_.max_dimf());
+  Eigen::MatrixXd lff = Eigen::MatrixXd::Zero(robot_.dimf(), robot_.dimf());
   cost.lff(robot_, data_, t_, dtau_, s, kkt_mat);
   EXPECT_TRUE(kkt_mat.Qff().isZero());
   std::vector<bool> active_contacts;
@@ -76,11 +76,11 @@ TEST_F(FixedBaseContactCostTest, setWeights) {
   const double l_ref = 0.5 * dtau_ * (f_weight.array()* (s.f-f_ref).array()*(s.f-f_ref).array()).sum();
   EXPECT_DOUBLE_EQ(cost.l(robot_, data_, t_, dtau_, s), l_ref);
   cost.lf(robot_, data_, t_, dtau_, s, kkt_res);
-  Eigen::VectorXd lf_ref = Eigen::VectorXd::Zero(robot_.max_dimf());
+  Eigen::VectorXd lf_ref = Eigen::VectorXd::Zero(robot_.dimf());
   lf_ref.array() = dtau_ * f_weight.asDiagonal() * (s.f-f_ref);
   EXPECT_TRUE(kkt_res.lf().isApprox(lf_ref));
   cost.lff(robot_, data_, t_, dtau_, s, kkt_mat);
-  Eigen::MatrixXd lff_ref = Eigen::MatrixXd::Zero(robot_.max_dimf(), robot_.max_dimf());
+  Eigen::MatrixXd lff_ref = Eigen::MatrixXd::Zero(robot_.dimf(), robot_.dimf());
   lff_ref = dtau_*f_weight.asDiagonal();
   EXPECT_TRUE(kkt_mat.Qff().isApprox(lff_ref));
 }

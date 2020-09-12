@@ -59,7 +59,7 @@ TEST_F(FloatingBaseTaskSpace6DCostTest, setRefByVectorAndMatrix) {
   s.q = Eigen::VectorXd::Random(dimq);
   s.v = Eigen::VectorXd::Random(dimv);
   s.a = Eigen::VectorXd::Random(dimv);
-  s.f = Eigen::VectorXd::Random(robot_.max_dimf());
+  s.f = Eigen::VectorXd::Random(robot_.dimf());
   s.u = Eigen::VectorXd::Random(dimv);
   robot_.updateKinematics(s.q, s.v, s.a);
   const pinocchio::SE3 placement = robot_.framePlacement(frame_id);
@@ -107,7 +107,7 @@ TEST_F(FloatingBaseTaskSpace6DCostTest, setRefBySE3) {
   s.q = Eigen::VectorXd::Random(dimq);
   s.v = Eigen::VectorXd::Random(dimv);
   s.a = Eigen::VectorXd::Random(dimv);
-  s.f = Eigen::VectorXd::Random(robot_.max_dimf());
+  s.f = Eigen::VectorXd::Random(robot_.dimf());
   s.u = Eigen::VectorXd::Random(dimv);
   robot_.updateKinematics(s.q, s.v, s.a);
   const pinocchio::SE3 placement = robot_.framePlacement(frame_id);

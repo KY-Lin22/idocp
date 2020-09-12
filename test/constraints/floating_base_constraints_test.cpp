@@ -26,26 +26,20 @@ protected:
     const double baum_a = std::abs(Eigen::VectorXd::Random(1)[0]);
     const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
     robot = Robot(urdf, contact_frames, baum_a, baum_b);
-    std::random_device rnd;
-    for (int i=0; i<contact_frames.size(); ++i) {
-      contact_status.push_back(rnd()%2==0);
-    }
-    robot.setContactStatus(contact_status);
     s = SplitSolution(robot);
-    s.setContactStatus(robot);
     robot.generateFeasibleConfiguration(s.q);
     s.v = Eigen::VectorXd::Random(robot.dimv());
     s.a = Eigen::VectorXd::Random(robot.dimv());
     s.u = Eigen::VectorXd::Random(robot.dimv());
-    s.f = Eigen::VectorXd::Random(robot.max_dimf());
-    s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+    s.f = Eigen::VectorXd::Random(robot.dimf());
+    s.mu = Eigen::VectorXd::Random(robot.dim_passive());
     s.lmd = Eigen::VectorXd::Random(robot.dimv());
     s.gmm = Eigen::VectorXd::Random(robot.dimv());
     d = SplitDirection(robot);
     d.dq() = Eigen::VectorXd::Random(robot.dimv());
     d.dv() = Eigen::VectorXd::Random(robot.dimv());
     d.da() = Eigen::VectorXd::Random(robot.dimv());
-    d.df() = Eigen::VectorXd::Random(robot.dimf());
+    d.df() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
     d.du = Eigen::VectorXd::Random(robot.dimv());
     dtau = std::abs(Eigen::VectorXd::Random(1)[0]);
     t = std::abs(Eigen::VectorXd::Random(1)[0]);

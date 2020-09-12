@@ -12,8 +12,7 @@
 
 namespace idocp {
 class ForceInequality {
-private:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+public:
 
   ForceInequality(const Robot& robot, const double mu, 
                   const double barrier=1.0e-04,
@@ -31,33 +30,23 @@ private:
 
   ForceInequality& operator=(ForceInequality&&) noexcept = default;
 
-  bool isFeasible(Robot& robot, const SplitSolution& s);
+  bool isFeasible(const Robot& robot, const SplitSolution& s);
 
-  void setSlackAndDual(Robot& robot, const double dtau, const SplitSolution& s, 
-                       ConstraintComponentData& data);
+  void setSlackAndDual(const Robot& robot, const double dtau, 
+                       const SplitSolution& s, ConstraintComponentData& data);
 
-  void computePrimalResidual(Robot& robot, const double dtau,  
+  void computePrimalResidual(const Robot& robot, const double dtau,  
                              const SplitSolution& s, 
-                             const ConstraintComponentData& data,
-                             Eigen::VectorXd& residual);
+                             ConstraintComponentData& data);
 
-  void augmentDualResidual(Robot& robot, const double dtau, 
+  void augmentDualResidual(const Robot& robot, const double dtau, 
                            const SplitSolution& s, 
                            const ConstraintComponentData& data,
                            KKTResidual& kkt_residual);
 
-  // double residualL1Nrom(const Robot& robot, const double dtau, 
-  //                       const SplitSolution& s, 
-  //                       ConstraintComponentData& data) const;
-
-  // double squaredKKTErrorNorm(const Robot& robot, const double dtau, 
-  //                            const SplitSolution& s, 
-  //                            ConstraintComponentData& data) const;
-
-public:
+private:
   int num_point_contacts_, dimc_; 
   double mu_, barrier_, fraction_to_boundary_rate_;
-  ConstraintComponentData data_;
 
 };
 

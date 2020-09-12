@@ -28,31 +28,22 @@ private:
 
   bool isFeasible(Robot& robot, const SplitSolution& s);
 
-  void setSlackAndDual(Robot& robot, const double dtau, const SplitSolution& s);
+  void setSlackAndDual(Robot& robot, const double dtau, 
+                       const SplitSolution& s, ConstraintComponentData& data);
 
   void computePrimalResidual(Robot& robot, const double dtau,  
-                             const SplitSolution& s, Eigen::VectorXd& residual);
+                             const SplitSolution& s, 
+                             ConstraintComponentData& data);
 
   void augmentDualResidual(Robot& robot, const double dtau, 
+                           const SplitSolution& s, 
+                           const ConstraintComponentData& data,
                            KKTResidual& kkt_residual);
-
-  void condenseSlackAndDual(Robot& robot, const double dtau, 
-                            const SplitSolution& s, KKTMatrix& kkt_matrix,
-                            KKTResidual& kkt_residual);
-
-  void computeSlackAndDualDirection(Robot& robot, const double dtau, 
-                                    const SplitDirection& d); 
-
-  double residualL1Nrom(const Robot& robot, const double dtau, 
-                        const SplitSolution& s) const;
-
-  double squaredKKTErrorNorm(const Robot& robot, const double dtau, 
-                             const SplitSolution& s) const;
 
 public:
   int num_point_contacts_, dimc_; 
   double barrier_, fraction_to_boundary_rate_;
-  Eigen::MatrixXd baumgarte_derivatives_;
+  Eigen::MatrixXd dbaum_da_, dbaum_dv_, dbaum_da_;
 
 };
 

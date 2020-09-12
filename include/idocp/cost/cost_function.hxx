@@ -78,7 +78,7 @@ inline void CostFunction::computeStageCostDerivatives(
     cost->lq(robot, data, t, dtau, s, kkt_residual);
     cost->lv(robot, data, t, dtau, s, kkt_residual);
     cost->la(robot, data, t, dtau, s, kkt_residual);
-    if (robot.has_active_contacts() > 0) {
+    if (robot.has_contacts() > 0) {
       cost->lf(robot, data, t, dtau, s, kkt_residual);
     }
   }
@@ -93,7 +93,7 @@ inline void CostFunction::computeStageCostHessian(
     cost->lqq(robot, data, t, dtau, s, kkt_matrix);
     cost->lvv(robot, data, t, dtau, s, kkt_matrix);
     cost->laa(robot, data, t, dtau, s, kkt_matrix);
-    if (robot.has_active_contacts() > 0) {
+    if (robot.has_contacts() > 0) {
       cost->lff(robot, data, t, dtau, s, kkt_matrix);
     }
   }
