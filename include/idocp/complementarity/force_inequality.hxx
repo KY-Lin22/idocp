@@ -112,11 +112,11 @@ inline void ForceInequality::augmentDualResidual(
     assert(fy == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
     assert(fz == s.f_verbose(kDimf_verbose*i+4));
     const double friction_cone_dual = data.dual.coeff(kDimc*i+kDimf);
-    kkt_residual.lf().coeffRef(kDimf*i  ) += 2 * dtau * fx * friction_cone_dual;
-    kkt_residual.lf().coeffRef(kDimf*i+1) -= 2 * dtau * fx * friction_cone_dual;
-    kkt_residual.lf().coeffRef(kDimf*i+2) += 2 * dtau * fy * friction_cone_dual;
-    kkt_residual.lf().coeffRef(kDimf*i+3) -= 2 * dtau * fy * friction_cone_dual;
-    kkt_residual.lf().coeffRef(kDimf*i+4) -= 2 * dtau * mu_ * mu_ * fz * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i  ) += 2 * dtau * fx * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+1) -= 2 * dtau * fx * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+2) += 2 * dtau * fy * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+3) -= 2 * dtau * fy * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+4) -= 2 * dtau * mu_ * mu_ * fz * friction_cone_dual;
   }
 }
 

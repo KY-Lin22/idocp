@@ -1,1 +1,2 @@
 add_test_macro(fixed_base_force_inequality_test)
+add_test_macro(floating_base_force_inequality_test)
