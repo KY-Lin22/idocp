@@ -57,10 +57,10 @@ add_library(
   # src/constraints/joint_torques_upper_limit.cpp
   # src/constraints/joint_torques_lower_limit.cpp
   # src/complementarity/force_inequality.cpp
-  # src/ocp/kkt_residual.cpp
-  # src/ocp/kkt_matrix.cpp
-  # src/ocp/split_solution.cpp
-  # src/ocp/split_direction.cpp
+  src/ocp/kkt_residual.cpp
+  src/ocp/kkt_matrix.cpp
+  src/ocp/split_solution.cpp
+  src/ocp/split_direction.cpp
   # src/ocp/state_equation.cpp
   # src/ocp/robot_dynamics.cpp
   # src/ocp/split_parnmpc.cpp

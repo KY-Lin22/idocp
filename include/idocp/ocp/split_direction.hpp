@@ -28,8 +28,6 @@ public:
 
   void setContactStatus(const Robot& robot);
 
-  Eigen::VectorBlock<Eigen::VectorXd> split_direction();
-
   Eigen::VectorBlock<Eigen::VectorXd> dlmd();
 
   Eigen::VectorBlock<Eigen::VectorXd> dgmm();
@@ -46,8 +44,6 @@ public:
 
   Eigen::VectorBlock<Eigen::VectorXd> dx();
 
-  const Eigen::VectorBlock<const Eigen::VectorXd> split_direction() const;
-
   const Eigen::VectorBlock<const Eigen::VectorXd> dlmd() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> dgmm() const;
@@ -57,8 +53,6 @@ public:
   const Eigen::VectorBlock<const Eigen::VectorXd> da() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> df() const;
-
-  const Eigen::VectorBlock<const Eigen::VectorXd> dr() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> dq() const;
 
@@ -70,19 +64,15 @@ public:
 
   int dimKKT() const;
 
-  int max_dimKKT() const;
-
   int dimc() const;
 
-  int dimf() const;
+  int dimf_verbose() const;
 
   // condensed directions
-  Eigen::VectorXd du, dbeta;
+  Eigen::VectorXd du, dbeta, split_direction;
 
 private:
-  Eigen::VectorXd split_direction_;
-  int dimv_, dimx_, dim_passive_, max_dimf_, dimf_, max_dimc_, dimc_, dimKKT_, 
-      max_dimKKT_;
+  int dimv_, dimx_, num_point_contacts_, dimf_verbose_, dimc_, dimKKT_;
 
 };
 

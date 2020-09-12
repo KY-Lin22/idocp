@@ -26,8 +26,6 @@ public:
 
   KKTResidual& operator=(KKTResidual&&) noexcept = default;
 
-  void setContactStatus(const Robot& robot);
-
   Eigen::VectorBlock<Eigen::VectorXd> KKT_residual();
 
   Eigen::VectorBlock<Eigen::VectorXd> Fq();
@@ -80,8 +78,6 @@ public:
 
   int dimKKT() const;
 
-  int max_dimKKT() const;
-
   int dimc() const;
 
   int dimf() const;
@@ -90,7 +86,7 @@ public:
 
 private:
   Eigen::VectorXd kkt_residual_;
-  int dimv_, dimx_, dimf_, dimc_, dimKKT_, max_dimKKT_;
+  int dimv_, dimx_, dimf_, dimc_, dimKKT_;
 
 };
 

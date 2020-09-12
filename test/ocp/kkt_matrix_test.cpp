@@ -28,15 +28,121 @@ protected:
 
 
 TEST_F(KKTMatrixTest, fixed_base) {
+  Robot robot(fixed_base_urdf_);
+  KKTMatrix matrix(robot);
+  const int dimv = robot.dimv();
+  const int dimf = 7*robot.num_point_contacts();
+  const int dim_passive = robot.dim_passive();
+  const int dimc = robot.dim_passive();
+  const Eigen::MatrixXd Ca = Eigen::MatrixXd::Random(dimc, dimv);
+  const Eigen::MatrixXd Cf = Eigen::MatrixXd::Random(dimc, dimf);
+  const Eigen::MatrixXd Cq = Eigen::MatrixXd::Random(dimc, dimv);
+  const Eigen::MatrixXd Cv = Eigen::MatrixXd::Random(dimc, dimv);
+
+  const Eigen::MatrixXd Qaa = Eigen::MatrixXd::Random(dimv, dimv);
+  const Eigen::MatrixXd Qaf = Eigen::MatrixXd::Random(dimv, dimf);
+  const Eigen::MatrixXd Qaq = Eigen::MatrixXd::Random(dimv, dimv);
+  const Eigen::MatrixXd Qav = Eigen::MatrixXd::Random(dimv, dimv);
+
+  const Eigen::MatrixXd Qfa = Eigen::MatrixXd::Random(dimf, dimv);
+  const Eigen::MatrixXd Qff = Eigen::MatrixXd::Random(dimf, dimf);
+  const Eigen::MatrixXd Qfq = Eigen::MatrixXd::Random(dimf, dimv);
+  const Eigen::MatrixXd Qfv = Eigen::MatrixXd::Random(dimf, dimv);
+
+  const Eigen::MatrixXd Qqa = Eigen::MatrixXd::Random(dimv, dimv);
+  const Eigen::MatrixXd Qqf = Eigen::MatrixXd::Random(dimv, dimf);
+  const Eigen::MatrixXd Qqq = Eigen::MatrixXd::Random(dimv, dimv);
+  const Eigen::MatrixXd Qqv = Eigen::MatrixXd::Random(dimv, dimv);
+
+  const Eigen::MatrixXd Qva = Eigen::MatrixXd::Random(dimv, dimv);
+  const Eigen::MatrixXd Qvf = Eigen::MatrixXd::Random(dimv, dimf);
+  const Eigen::MatrixXd Qvq = Eigen::MatrixXd::Random(dimv, dimv);
+  const Eigen::MatrixXd Qvv = Eigen::MatrixXd::Random(dimv, dimv);
+
+  matrix.Ca() = Ca;
+  matrix.Cf() = Cf;
+  matrix.Cq() = Cq;
+  matrix.Cv() = Cv;
+  matrix.Qaa() = Qaa;
+  matrix.Qaf() = Qaf;
+  matrix.Qaq() = Qaq;
+  matrix.Qav() = Qav;
+  matrix.Qfa() = Qfa;
+  matrix.Qff() = Qff;
+  matrix.Qfq() = Qfq;
+  matrix.Qfv() = Qfv;
+  matrix.Qqa() = Qqa;
+  matrix.Qqf() = Qqf;
+  matrix.Qqq() = Qqq;
+  matrix.Qqv() = Qqv;
+  matrix.Qva() = Qva;
+  matrix.Qvf() = Qvf;
+  matrix.Qvq() = Qvq;
+  matrix.Qvv() = Qvv;
+  EXPECT_TRUE(matrix.constraintsJacobian().block(0, 0, dimc, dimv).isApprox(Ca));
+  EXPECT_TRUE(matrix.constraintsJacobian().block(0, dimv, dimc, dimf).isApprox(Cf));
+  EXPECT_TRUE(matrix.constraintsJacobian().block(0, dimv+dimf, dimc, dimv).isApprox(Cq));
+  EXPECT_TRUE(matrix.constraintsJacobian().block(0, 2*dimv+dimf, dimc, dimv).isApprox(Cv));
+  EXPECT_TRUE(matrix.costHessian().block(0, 0, dimv, dimv).isApprox(Qaa));
+  EXPECT_TRUE(matrix.costHessian().block(0, dimv, dimv, dimf).isApprox(Qaf));
+  EXPECT_TRUE(matrix.costHessian().block(0, dimv+dimf, dimv, dimv).isApprox(Qaq));
+  EXPECT_TRUE(matrix.costHessian().block(0, 2*dimv+dimf, dimv, dimv).isApprox(Qav));
+  EXPECT_TRUE(matrix.costHessian().block(dimv, 0, dimf, dimv).isApprox(Qfa));
+  EXPECT_TRUE(matrix.costHessian().block(dimv, dimv, dimf, dimf).isApprox(Qff));
+  EXPECT_TRUE(matrix.costHessian().block(dimv, dimv+dimf, dimf, dimv).isApprox(Qfq));
+  EXPECT_TRUE(matrix.costHessian().block(dimv, 2*dimv+dimf, dimf, dimv).isApprox(Qfv));
+  EXPECT_TRUE(matrix.costHessian().block(dimv+dimf, 0, dimv, dimv).isApprox(Qqa));
+  EXPECT_TRUE(matrix.costHessian().block(dimv+dimf, dimv, dimv, dimf).isApprox(Qqf));
+  EXPECT_TRUE(matrix.costHessian().block(dimv+dimf, dimv+dimf, dimv, dimv).isApprox(Qqq));
+  EXPECT_TRUE(matrix.costHessian().block(dimv+dimf, 2*dimv+dimf, dimv, dimv).isApprox(Qqv));
+  EXPECT_TRUE(matrix.costHessian().block(2*dimv+dimf, 0, dimv, dimv).isApprox(Qva));
+  EXPECT_TRUE(matrix.costHessian().block(2*dimv+dimf, dimv, dimv, dimf).isApprox(Qvf));
+  EXPECT_TRUE(matrix.costHessian().block(2*dimv+dimf, dimv+dimf, dimv, dimv).isApprox(Qvq));
+  EXPECT_TRUE(matrix.costHessian().block(2*dimv+dimf, 2*dimv+dimf, dimv, dimv).isApprox(Qvv));
+
+  EXPECT_TRUE(matrix.Qxx().block(0, 0, dimv, dimv).isApprox(Qqq));
+  EXPECT_TRUE(matrix.Qxx().block(0, dimv, dimv, dimv).isApprox(Qqv));
+  EXPECT_TRUE(matrix.Qxx().block(dimv, 0, dimv, dimv).isApprox(Qvq));
+  EXPECT_TRUE(matrix.Qxx().block(dimv, dimv, dimv, dimv).isApprox(Qvv));
+  EXPECT_EQ(matrix.Qxx().rows(), 2*dimv);
+  EXPECT_EQ(matrix.Qxx().cols(), 2*dimv);
+
+  EXPECT_TRUE(matrix.Qafaf().block(0, 0, dimv, dimv).isApprox(Qaa));
+  EXPECT_TRUE(matrix.Qafaf().block(0, dimv, dimv, dimf).isApprox(Qaf));
+  EXPECT_TRUE(matrix.Qafaf().block(dimv, 0, dimf, dimv).isApprox(Qfa));
+  EXPECT_TRUE(matrix.Qafaf().block(dimv, dimv, dimf, dimf).isApprox(Qff));
+  EXPECT_EQ(matrix.Qafaf().rows(), dimv+dimf);
+  EXPECT_EQ(matrix.Qafaf().cols(), dimv+dimf);
+
+  EXPECT_TRUE(matrix.Qafqv().block(0, 0, dimv, dimv).isApprox(Qaq));
+  EXPECT_TRUE(matrix.Qafqv().block(0, dimv, dimv, dimv).isApprox(Qav));
+  EXPECT_TRUE(matrix.Qafqv().block(dimv, 0, dimf, dimv).isApprox(Qfq));
+  EXPECT_TRUE(matrix.Qafqv().block(dimv, dimv, dimf, dimv).isApprox(Qfv));
+  EXPECT_EQ(matrix.Qafqv().rows(), dimv+dimf);
+  EXPECT_EQ(matrix.Qafqv().cols(), 2*dimv);
+
+  EXPECT_TRUE(matrix.Cqv().block(0, 0, dimc, dimv).isApprox(Cq));
+  EXPECT_TRUE(matrix.Cqv().block(0, dimv, dimc, dimv).isApprox(Cv));
+  EXPECT_EQ(matrix.Cqv().rows(), dimc);
+  EXPECT_EQ(matrix.Cqv().cols(), 2*dimv);
+  EXPECT_TRUE(matrix.Caf().block(0, 0, dimc, dimv).isApprox(Ca));
+  EXPECT_TRUE(matrix.Caf().block(0, dimv, dimc, dimf).isApprox(Cf));
+  EXPECT_EQ(matrix.Caf().rows(), dimc);
+  EXPECT_EQ(matrix.Caf().cols(), dimv+dimf);
+
+  matrix.setZero();
+  EXPECT_TRUE(matrix.costHessian().isZero());
+  EXPECT_TRUE(matrix.constraintsJacobian().isZero());
+}
+
+
+
+TEST_F(KKTMatrixTest, fixed_base_contact) {
   std::vector<int> contact_frames = {18};
   Robot robot(fixed_base_urdf_, contact_frames, 0, 0);
-  std::random_device rnd;
-  std::vector<bool> contact_status = {rnd()%2==0};
-  robot.setContactStatus(contact_status);
   KKTMatrix matrix(robot);
-  matrix.setContactStatus(robot);
   const int dimv = robot.dimv();
-  const int dimf = 7*robot.max_point_contacts();
+  const int dimf = 7*robot.num_point_contacts();
   const int dim_passive = robot.dim_passive();
   const int dimc = robot.dim_passive();
   const Eigen::MatrixXd Ca = Eigen::MatrixXd::Random(dimc, dimv);
@@ -144,17 +250,13 @@ TEST_F(KKTMatrixTest, fixed_base) {
 TEST_F(KKTMatrixTest, invert_fixed_base) {
   std::vector<int> contact_frames = {18};
   Robot robot(fixed_base_urdf_, contact_frames, 0, 0);
-  std::random_device rnd;
-  std::vector<bool> contact_status = {rnd()%2==0};
-  robot.setContactStatus(contact_status);
   KKTMatrix matrix(robot);
-  matrix.setContactStatus(robot);
   const int dimv = robot.dimv();
   const int dimx = 2*robot.dimv();
-  const int dimf = 7*robot.max_point_contacts();
+  const int dimf = 7*robot.num_point_contacts();
   const int dim_passive = robot.dim_passive();
   const int dimc = robot.dim_passive();
-  const int dimQ = 3*robot.dimv() + 7*robot.max_point_contacts();
+  const int dimQ = 3*robot.dimv() + 7*robot.num_point_contacts();
   const Eigen::MatrixXd Q_seed_mat = Eigen::MatrixXd::Random(dimQ, dimQ);
   const Eigen::MatrixXd Q_mat = Q_seed_mat * Q_seed_mat.transpose() + Eigen::MatrixXd::Identity(dimQ, dimQ);
   const Eigen::MatrixXd Jc_mat = Eigen::MatrixXd::Random(dimc, dimQ);
@@ -188,16 +290,9 @@ TEST_F(KKTMatrixTest, invert_fixed_base) {
 TEST_F(KKTMatrixTest, floating_base) {
   std::vector<int> contact_frames = {14, 24, 34, 44};
   Robot robot(floating_base_urdf_, contact_frames, 0, 0);
-  std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(rnd()%2==0);
-  }
-  robot.setContactStatus(contact_status);
   KKTMatrix matrix(robot);
-  matrix.setContactStatus(robot);
   const int dimv = robot.dimv();
-  const int dimf = 7*robot.max_point_contacts();
+  const int dimf = 7*robot.num_point_contacts();
   const int dim_passive = robot.dim_passive();
   const int dimc = robot.dim_passive();
   const Eigen::MatrixXd Ca = Eigen::MatrixXd::Random(dimc, dimv);
@@ -310,20 +405,13 @@ TEST_F(KKTMatrixTest, floating_base) {
 TEST_F(KKTMatrixTest, invert_floating_base) {
   std::vector<int> contact_frames = {14, 24, 34, 44};
   Robot robot(floating_base_urdf_, contact_frames, 0, 0);
-  std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(rnd()%2==0);
-  }
-  robot.setContactStatus(contact_status);
   KKTMatrix matrix(robot);
-  matrix.setContactStatus(robot);
   const int dimv = robot.dimv();
   const int dimx = 2*robot.dimv();
-  const int dimf = 7*robot.max_point_contacts();
+  const int dimf = 7*robot.num_point_contacts();
   const int dim_passive = robot.dim_passive();
   const int dimc = robot.dim_passive();
-  const int dimQ = 3*robot.dimv() + 7*robot.max_point_contacts();
+  const int dimQ = 3*robot.dimv() + 7*robot.num_point_contacts();
   const Eigen::MatrixXd Q_seed_mat = Eigen::MatrixXd::Random(dimQ, dimQ);
   const Eigen::MatrixXd Q_mat = Q_seed_mat * Q_seed_mat.transpose() + Eigen::MatrixXd::Identity(dimQ, dimQ);
   const Eigen::MatrixXd Jc_mat = Eigen::MatrixXd::Random(dimc, dimQ);

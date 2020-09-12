@@ -28,29 +28,20 @@ protected:
 
 
 TEST_F(SplitDirectionTest, fixed_base) {
-  std::vector<int> contact_frames = {18};
-  Robot robot(fixed_base_urdf_, contact_frames, 0, 0);
-  std::random_device rnd;
-  std::vector<bool> contact_status = {rnd()%2==0};
-  robot.setContactStatus(contact_status);
+  Robot robot(fixed_base_urdf_);
   SplitDirection d(robot);
-  d.setContactStatus(robot);
   const Eigen::VectorXd split_direction = Eigen::VectorXd::Random(d.dimKKT());
-  d.split_direction() = split_direction;
+  d.split_direction = split_direction;
   const Eigen::VectorXd dlmd = split_direction.segment(0, robot.dimv());
   const Eigen::VectorXd dgmm = split_direction.segment(robot.dimv(), robot.dimv());
-  const int dimc = robot.dim_passive() + robot.dimf();
+  const int dimc = robot.dim_passive();
   const Eigen::VectorXd dmu = split_direction.segment(2*robot.dimv(), dimc);
-  const Eigen::VectorXd da 
-      = split_direction.segment(2*robot.dimv()+dimc, robot.dimv());
-  const Eigen::VectorXd df 
-      = split_direction.segment(3*robot.dimv()+dimc, robot.dimf());
-  const Eigen::VectorXd dq 
-      = split_direction.segment(3*robot.dimv()+dimc+robot.dimf(), robot.dimv());
-  const Eigen::VectorXd dv 
-      = split_direction.segment(4*robot.dimv()+dimc+robot.dimf(), robot.dimv());
-  const Eigen::VectorXd dx 
-      = split_direction.segment(3*robot.dimv()+dimc+robot.dimf(), 2*robot.dimv());
+  const int dimf_verbose = 7*robot.num_point_contacts();
+  const Eigen::VectorXd da = split_direction.segment(2*robot.dimv()+dimc, robot.dimv());
+  const Eigen::VectorXd df = split_direction.segment(3*robot.dimv()+dimc, dimf_verbose);
+  const Eigen::VectorXd dq = split_direction.segment(3*robot.dimv()+dimc+dimf_verbose, robot.dimv());
+  const Eigen::VectorXd dv = split_direction.segment(4*robot.dimv()+dimc+dimf_verbose, robot.dimv());
+  const Eigen::VectorXd dx = split_direction.segment(3*robot.dimv()+dimc+dimf_verbose, 2*robot.dimv());
   EXPECT_TRUE(dlmd.isApprox(d.dlmd()));
   EXPECT_TRUE(dgmm.isApprox(d.dgmm()));
   EXPECT_TRUE(dmu.isApprox(d.dmu()));
@@ -60,39 +51,57 @@ TEST_F(SplitDirectionTest, fixed_base) {
   EXPECT_TRUE(dv.isApprox(d.dv()));
   EXPECT_TRUE(dx.isApprox(d.dx()));
   d.setZero();
-  EXPECT_TRUE(d.split_direction().isZero());
-  EXPECT_EQ(d.dimKKT(), 5*robot.dimv()+robot.dim_passive()+2*robot.dimf());
-  EXPECT_EQ(d.max_dimKKT(), 5*robot.dimv()+robot.dim_passive()+2*robot.max_dimf());
+  EXPECT_TRUE(d.split_direction.isZero());
+  EXPECT_EQ(d.dimKKT(), 5*robot.dimv()+dimc+dimf_verbose);
+}
+
+
+TEST_F(SplitDirectionTest, fixed_base_contact) {
+  std::vector<int> contact_frames = {18};
+  Robot robot(fixed_base_urdf_, contact_frames, 0, 0);
+  SplitDirection d(robot);
+  const Eigen::VectorXd split_direction = Eigen::VectorXd::Random(d.dimKKT());
+  d.split_direction = split_direction;
+  const Eigen::VectorXd dlmd = split_direction.segment(0, robot.dimv());
+  const Eigen::VectorXd dgmm = split_direction.segment(robot.dimv(), robot.dimv());
+  const int dimc = robot.dim_passive();
+  const Eigen::VectorXd dmu = split_direction.segment(2*robot.dimv(), dimc);
+  const int dimf_verbose = 7*robot.num_point_contacts();
+  const Eigen::VectorXd da = split_direction.segment(2*robot.dimv()+dimc, robot.dimv());
+  const Eigen::VectorXd df = split_direction.segment(3*robot.dimv()+dimc, dimf_verbose);
+  const Eigen::VectorXd dq = split_direction.segment(3*robot.dimv()+dimc+dimf_verbose, robot.dimv());
+  const Eigen::VectorXd dv = split_direction.segment(4*robot.dimv()+dimc+dimf_verbose, robot.dimv());
+  const Eigen::VectorXd dx = split_direction.segment(3*robot.dimv()+dimc+dimf_verbose, 2*robot.dimv());
+  EXPECT_TRUE(dlmd.isApprox(d.dlmd()));
+  EXPECT_TRUE(dgmm.isApprox(d.dgmm()));
+  EXPECT_TRUE(dmu.isApprox(d.dmu()));
+  EXPECT_TRUE(da.isApprox(d.da()));
+  EXPECT_TRUE(df.isApprox(d.df()));
+  EXPECT_TRUE(dq.isApprox(d.dq()));
+  EXPECT_TRUE(dv.isApprox(d.dv()));
+  EXPECT_TRUE(dx.isApprox(d.dx()));
+  d.setZero();
+  EXPECT_TRUE(d.split_direction.isZero());
+  EXPECT_EQ(d.dimKKT(), 5*robot.dimv()+dimc+dimf_verbose);
 }
 
 
 TEST_F(SplitDirectionTest, floating_base) {
   std::vector<int> contact_frames = {14, 24, 34, 44};
-  Robot robot(fixed_base_urdf_, contact_frames, 0, 0);
-  std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(rnd()%2==0);
-  }
-  robot.setContactStatus(contact_status);
+  Robot robot(floating_base_urdf_, contact_frames, 0, 0);
   SplitDirection d(robot);
-  d.setContactStatus(robot);
   const Eigen::VectorXd split_direction = Eigen::VectorXd::Random(d.dimKKT());
-  d.split_direction() = split_direction;
+  d.split_direction = split_direction;
   const Eigen::VectorXd dlmd = split_direction.segment(0, robot.dimv());
   const Eigen::VectorXd dgmm = split_direction.segment(robot.dimv(), robot.dimv());
-  const int dimc = robot.dim_passive() + robot.dimf();
+  const int dimc = robot.dim_passive();
   const Eigen::VectorXd dmu = split_direction.segment(2*robot.dimv(), dimc);
-  const Eigen::VectorXd da 
-      = split_direction.segment(2*robot.dimv()+dimc, robot.dimv());
-  const Eigen::VectorXd df 
-      = split_direction.segment(3*robot.dimv()+dimc, robot.dimf());
-  const Eigen::VectorXd dq 
-      = split_direction.segment(3*robot.dimv()+dimc+robot.dimf(), robot.dimv());
-  const Eigen::VectorXd dv 
-      = split_direction.segment(4*robot.dimv()+dimc+robot.dimf(), robot.dimv());
-  const Eigen::VectorXd dx 
-      = split_direction.segment(3*robot.dimv()+dimc+robot.dimf(), 2*robot.dimv());
+  const int dimf_verbose = 7*robot.num_point_contacts();
+  const Eigen::VectorXd da = split_direction.segment(2*robot.dimv()+dimc, robot.dimv());
+  const Eigen::VectorXd df = split_direction.segment(3*robot.dimv()+dimc, dimf_verbose);
+  const Eigen::VectorXd dq = split_direction.segment(3*robot.dimv()+dimc+dimf_verbose, robot.dimv());
+  const Eigen::VectorXd dv = split_direction.segment(4*robot.dimv()+dimc+dimf_verbose, robot.dimv());
+  const Eigen::VectorXd dx = split_direction.segment(3*robot.dimv()+dimc+dimf_verbose, 2*robot.dimv());
   EXPECT_TRUE(dlmd.isApprox(d.dlmd()));
   EXPECT_TRUE(dgmm.isApprox(d.dgmm()));
   EXPECT_TRUE(dmu.isApprox(d.dmu()));
@@ -102,9 +111,8 @@ TEST_F(SplitDirectionTest, floating_base) {
   EXPECT_TRUE(dv.isApprox(d.dv()));
   EXPECT_TRUE(dx.isApprox(d.dx()));
   d.setZero();
-  EXPECT_TRUE(d.split_direction().isZero());
-  EXPECT_EQ(d.dimKKT(), 5*robot.dimv()+robot.dim_passive()+2*robot.dimf());
-  EXPECT_EQ(d.max_dimKKT(), 5*robot.dimv()+robot.dim_passive()+2*robot.max_dimf());
+  EXPECT_TRUE(d.split_direction.isZero());
+  EXPECT_EQ(d.dimKKT(), 5*robot.dimv()+dimc+dimf_verbose);
 }
 
 

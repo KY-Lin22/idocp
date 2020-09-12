@@ -30,8 +30,6 @@ public:
 
   KKTMatrix& operator=(KKTMatrix&&) noexcept = default;
 
-  void setContactStatus(const Robot& robot);
-
   Eigen::Block<Eigen::MatrixXd> Ca();
 
   Eigen::Block<Eigen::MatrixXd> Cf();
