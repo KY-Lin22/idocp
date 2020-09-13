@@ -1,11 +1,11 @@
-#include "idocp/complementarity/force_inequality.hpp"
+#include "idocp/complementarity/contact_force_inequality.hpp"
 #include "idocp/constraints/pdipm_func.hpp"
 
 #include <assert.h>
 
 namespace idocp {
 
-inline ForceInequality::ForceInequality(
+inline ContactForceInequality::ContactForceInequality(
     const Robot& robot, const double mu, const double barrier, 
     const double fraction_to_boundary_rate)
   : num_point_contacts_(robot.num_point_contacts()),
@@ -13,26 +13,26 @@ inline ForceInequality::ForceInequality(
     mu_(mu), 
     barrier_(barrier), 
     fraction_to_boundary_rate_(fraction_to_boundary_rate) {
+  f_rsc_.setZero();
 }
 
 
-inline ForceInequality::ForceInequality() 
+inline ContactForceInequality::ContactForceInequality() 
   : num_point_contacts_(0),
     dimc_(0),
     mu_(0), 
     barrier_(0), 
     fraction_to_boundary_rate_(0) {
+  f_rsc_.setZero();
 }
 
 
-inline ForceInequality::~ForceInequality() {
+inline ContactForceInequality::~ContactForceInequality() {
 }
 
 
-inline bool ForceInequality::isFeasible(const Robot& robot, 
-                                        const SplitSolution& s) {
-  constexpr int kDimf = 5;
-  constexpr int kDimf_verbose = 7;
+inline bool ContactForceInequality::isFeasible(const Robot& robot, 
+                                               const SplitSolution& s) {
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     if (s.f_verbose.segment<kDimf>(kDimf_verbose*i).minCoeff() < 0) {
       return false;
@@ -52,15 +52,11 @@ inline bool ForceInequality::isFeasible(const Robot& robot,
 }
 
 
-inline void ForceInequality::setSlackAndDual(const Robot& robot, 
+inline void ContactForceInequality::setSlack(const Robot& robot, 
                                              const double dtau, 
                                              const SplitSolution& s,
                                              ConstraintComponentData& data) {
   assert(dtau > 0);
-  constexpr int kDimb = 3;
-  constexpr int kDimf = 5;
-  constexpr int kDimc = 6;
-  constexpr int kDimf_verbose = 7;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     data.slack.segment<kDimf>(kDimc*i) = dtau * s.f_verbose.segment<kDimf>(kDimf_verbose*i);
     const double fx = s.f.coeff(kDimb*i  );
@@ -75,14 +71,10 @@ inline void ForceInequality::setSlackAndDual(const Robot& robot,
 }
 
 
-inline void ForceInequality::computePrimalResidual(
+inline void ContactForceInequality::computePrimalResidual(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     ConstraintComponentData& data) {
   assert(dtau > 0);
-  constexpr int kDimb = 3;
-  constexpr int kDimf = 5;
-  constexpr int kDimc = 6;
-  constexpr int kDimf_verbose = 7;
   data.residual = data.slack;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     data.residual.segment<kDimf>(kDimc*i).noalias() -= dtau * s.f_verbose.segment<kDimf>(kDimf_verbose*i);
@@ -98,14 +90,10 @@ inline void ForceInequality::computePrimalResidual(
 }
 
 
-inline void ForceInequality::augmentDualResidual(
+inline void ContactForceInequality::augmentDualResidual(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     const ConstraintComponentData& data, KKTResidual& kkt_residual) {
   assert(dtau > 0);
-  constexpr int kDimb = 3;
-  constexpr int kDimf = 5;
-  constexpr int kDimc = 6;
-  constexpr int kDimf_verbose = 7;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     kkt_residual.lf().segment<kDimf>(kDimf_verbose*i).noalias() -= dtau * data.dual.segment<kDimf>(i*kDimc);
     const double fx = s.f.coeff(kDimb*i  );
@@ -124,13 +112,50 @@ inline void ForceInequality::augmentDualResidual(
 }
 
 
-inline void ForceInequality::computeSlackDirection(
+inline void ContactForceInequality::augmentCondensedHessian(
+    const Robot& robot, const double dtau, const SplitSolution& s, 
+    const Eigen::VectorXd& diagonal, KKTMatrix& kkt_matrix) {
+  assert(dtau > 0);
+  assert(diagonal.size() == kDimc*robot.num_point_contacts());
+  for (int i=0; i<robot.num_point_contacts(); ++i) {
+    f_rsc_.coeffRef(0) = - s.f.coeff(kDimb*i  );
+    f_rsc_.coeffRef(1) = s.f.coeff(kDimb*i  );
+    f_rsc_.coeffRef(2) = - s.f.coeff(kDimb*i+1);
+    f_rsc_.coeffRef(3) = s.f.coeff(kDimb*i+1);
+    f_rsc_.coeffRef(4) = mu_ * mu_ * s.f.coeff(kDimb*i+2);
+    kkt_matrix.Qff().template block<kDimf, kDimf>(kDimf_verbose*i, 
+                                                  kDimf_verbose*i).noalias()
+        += (4*dtau*dtau*diagonal.coeff(kDimc*i+5)) * f_rsc_ * f_rsc_.transpose();
+    kkt_matrix.Qff().template block<kDimf, kDimf>(kDimf_verbose*i, 
+                                                  kDimf_verbose*i).diagonal().noalias()
+        += (dtau*dtau) * diagonal.segment<kDimf>(kDimc*i);
+  }
+}
+
+
+inline void ContactForceInequality::augmentCondensedResidual(
+    const Robot& robot, const double dtau, const SplitSolution& s, 
+    const Eigen::VectorXd& condensed_residual, KKTResidual& kkt_residual) {
+  assert(dtau > 0);
+  assert(condensed_residual.size() == kDimc*robot.num_point_contacts());
+  for (int i=0; i<robot.num_point_contacts(); ++i) {
+    f_rsc_.coeffRef(0) = - s.f.coeff(kDimb*i  );
+    f_rsc_.coeffRef(1) = s.f.coeff(kDimb*i  );
+    f_rsc_.coeffRef(2) = - s.f.coeff(kDimb*i+1);
+    f_rsc_.coeffRef(3) = s.f.coeff(kDimb*i+1);
+    f_rsc_.coeffRef(4) = mu_ * mu_ * s.f.coeff(kDimb*i+2);
+    kkt_residual.lf().segment<kDimf>(kDimf_verbose*i).noalias() 
+        += dtau * condensed_residual.segment<kDimf>(kDimc*i);
+    kkt_residual.lf().segment<kDimf>(kDimf_verbose*i).noalias()
+        += 2 * dtau * condensed_residual.coeff(kDimc*i+kDimf) * f_rsc_;
+  }
+}
+
+
+inline void ContactForceInequality::computeSlackDirection(
     const Robot& robot, const double dtau, const SplitSolution& s,
     const SplitDirection& d, ConstraintComponentData& data) const {
-  constexpr int kDimb = 3;
-  constexpr int kDimf = 5;
-  constexpr int kDimc = 6;
-  constexpr int kDimf_verbose = 7;
+  assert(dtau > 0);
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     data.dslack.segment<kDimf>(kDimc*i) 
         = dtau * d.df().segment<kDimf>(kDimf_verbose*i);

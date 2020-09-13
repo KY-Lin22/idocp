@@ -1,4 +1,5 @@
 #include "idocp/complementarity/contact_complementarity.hpp"
+#include "idocp/constraints/pdipm_func.hpp"
 
 #include <assert.h>
 
@@ -12,7 +13,7 @@ inline ContactComplementarity::ContactComplementarity(
     max_complementarity_violation_(max_complementarity_violation), 
     barrier_(barrier), 
     fraction_to_boundary_rate_(fraction_to_boundary_rate),
-    force_inequality_(robot, mu, barrier, fraction_to_boundary_rate),
+    contact_force_inequality_(robot, mu, barrier, fraction_to_boundary_rate),
     baumgarte_inequality_(robot, barrier, fraction_to_boundary_rate),
     force_data_(dimc_),
     baumgarte_data_(dimc_),
@@ -31,7 +32,7 @@ inline ContactComplementarity::ContactComplementarity()
     max_complementarity_violation_(0), 
     barrier_(0), 
     fraction_to_boundary_rate_(0),
-    force_inequality_(),
+    contact_force_inequality_(),
     baumgarte_inequality_(),
     force_data_(),
     baumgarte_data_(),
@@ -51,7 +52,7 @@ inline ContactComplementarity::~ContactComplementarity() {
 
 inline bool ContactComplementarity::isFeasible(Robot& robot, 
                                                const SplitSolution& s) {
-  if(!force_inequality_.isFeasible(robot, s)) {
+  if(!contact_force_inequality_.isFeasible(robot, s)) {
     return false;
   }
   if(!baumgarte_inequality_.isFeasible(robot, s)) {
@@ -65,18 +66,38 @@ inline void ContactComplementarity::setSlackAndDual(Robot& robot,
                                                     const double dtau, 
                                                     const SplitSolution& s) {
   assert(dtau > 0);
-  force_inequality_.setSlackAndDual(robot, dtau, s, force_data_);
-  baumgarte_inequality_.setSlackAndDual(robot, dtau, s, baumgarte_data_);
+  contact_force_inequality_.setSlack(robot, dtau, s, force_data_);
+  baumgarte_inequality_.setSlack(robot, dtau, s, baumgarte_data_);
+  assert(force_data_.slack.minCoeff() > 0);
+  assert(baumgarte_data_.slack.minCoeff() > 0);
   complementarity_data_.slack.array() 
       = max_complementarity_violation_ 
           - force_data_.slack.array() * baumgarte_data_.slack.array();
+  pdipmfunc::SetSlackAndDualPositive(barrier_, complementarity_data_.slack, 
+                                     complementarity_data_.dual);
+  force_data_.dual.array() 
+      = barrier_ / force_data_.slack.array() 
+          - baumgarte_data_.slack.array() * complementarity_data_.dual.array();
+  for (int i=0; i<force_data_.dual.size(); ++i) {
+    while (force_data_.dual.coeff(i) < barrier_) {
+      force_data_.dual.coeffRef(i) += barrier_;
+    }
+  }
+  baumgarte_data_.dual.array() 
+      = barrier_ / baumgarte_data_.slack.array() 
+          - force_data_ .slack.array() * complementarity_data_.dual.array();
+  for (int i=0; i<baumgarte_data_.dual.size(); ++i) {
+    while (baumgarte_data_.dual.coeff(i) < barrier_) {
+      baumgarte_data_.dual.coeffRef(i) += barrier_;
+    }
+  }
 }
 
 
 inline void ContactComplementarity::computeResidual(
     Robot& robot, const double dtau, const SplitSolution& s) {
   assert(dtau > 0);
-  force_inequality_.computePrimalResidual(robot, dtau, s, force_data_);
+  contact_force_inequality_.computePrimalResidual(robot, dtau, s, force_data_);
   baumgarte_inequality_.computePrimalResidual(robot, dtau, s, baumgarte_data_);
   complementarity_data_.residual.array()
       = complementarity_data_.slack.array() 
@@ -99,7 +120,7 @@ inline void ContactComplementarity::augmentDualResidual(
     Robot& robot, const double dtau, const SplitSolution& s, 
     KKTResidual& kkt_residual) {
   assert(dtau > 0);
-  force_inequality_.augmentDualResidual(robot, dtau, s, force_data_, kkt_residual);
+  contact_force_inequality_.augmentDualResidual(robot, dtau, s, force_data_, kkt_residual);
   baumgarte_inequality_.augmentDualResidual(robot, dtau, s, baumgarte_data_, kkt_residual);
 }
 
@@ -121,7 +142,7 @@ inline void ContactComplementarity::computeSlackAndDualDirection(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     const SplitDirection& d) {
   assert(dtau > 0);
-  force_inequality_.computeSlackDirection(robot, dtau, s, d, force_data_);
+  contact_force_inequality_.computeSlackDirection(robot, dtau, s, d, force_data_);
   baumgarte_inequality_.computeSlackDirection(robot, dtau, s, d, baumgarte_data_);
   complementarity_data_.dslack.array() 
       = - force_data_.slack.array() * baumgarte_data_.dslack.array() 

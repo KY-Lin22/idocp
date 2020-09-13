@@ -33,8 +33,8 @@ public:
 
   bool isFeasible(Robot& robot, const SplitSolution& s);
 
-  void setSlackAndDual(Robot& robot, const double dtau, 
-                       const SplitSolution& s, ConstraintComponentData& data);
+  void setSlack(Robot& robot, const double dtau, const SplitSolution& s, 
+                ConstraintComponentData& data);
 
   void computePrimalResidual(Robot& robot, const double dtau,  
                              const SplitSolution& s, 
@@ -50,6 +50,10 @@ public:
                              ConstraintComponentData& data) const; 
 
 private:
+  static constexpr int kDimb = 3;
+  static constexpr int kDimf = 5;
+  static constexpr int kDimc = 6;
+  static constexpr int kDimf_verbose = 7;
   int num_point_contacts_, dimc_; 
   double barrier_, fraction_to_boundary_rate_;
   Eigen::VectorXd Baumgarte_residual_;
