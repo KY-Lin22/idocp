@@ -9,6 +9,7 @@
 #include "idocp/ocp/split_direction.hpp"
 #include "idocp/ocp/kkt_residual.hpp"
 #include "idocp/ocp/kkt_matrix.hpp"
+#include "idocp/complementarity/contact_force_inequality.hpp"
 
 
 namespace idocp {
@@ -50,6 +51,11 @@ public:
                                const Eigen::VectorXd& diagonal,
                                KKTMatrix& kkt_matrix); 
 
+  void augmentComplementarityCondensedHessian(
+      Robot& robot, const double dtau, const SplitSolution& s, 
+      const ContactForceInequality& contact_force_inequality, 
+      const Eigen::VectorXd& diagonal, KKTMatrix& kkt_matrix); 
+
   void augmentCondensedResidual(Robot& robot, const double dtau, 
                                 const SplitSolution& s, 
                                 const Eigen::VectorXd& condensed_residual, 
@@ -70,6 +76,8 @@ private:
   Eigen::MatrixXd dBaumgarte_dq_, dBaumgarte_dv_, dBaumgarte_da_,
                   dBaumgarte_verbose_dq_, dBaumgarte_verbose_dv_, 
                   dBaumgarte_verbose_da_;
+  Eigen::Matrix<double, 2, kDimf> Qff_rsc_;
+  Eigen::Matrix<double, kDimf, 1> f_rsc_;
 
 };
 

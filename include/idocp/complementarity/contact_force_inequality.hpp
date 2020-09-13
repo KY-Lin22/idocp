@@ -59,6 +59,8 @@ public:
                              const SplitSolution& s, const SplitDirection& d,
                              ConstraintComponentData& data) const; 
 
+  double mu() const;
+
 private:
   static constexpr int kDimb = 3;
   static constexpr int kDimf = 5;

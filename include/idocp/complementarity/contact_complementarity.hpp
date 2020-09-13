@@ -64,7 +64,8 @@ private:
   ContactForceInequality contact_force_inequality_;
   BaumgarteInequality baumgarte_inequality_;
   ConstraintComponentData force_data_, baumgarte_data_, complementarity_data_;
-  Eigen::VectorXd s_g_, s_h_, g_w_, g_ss_, g_st_, g_tt_;
+  Eigen::VectorXd s_g_, s_h_, g_w_, g_ss_, g_st_, g_tt_, 
+                  condensed_force_residual_, condensed_baumgarte_residual_;
 
 };
 

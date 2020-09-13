@@ -238,6 +238,107 @@ TEST_F(FloatingBaseBaumgarteInequalityTest, augmentCondensedHessian) {
 }
 
 
+TEST_F(FloatingBaseBaumgarteInequalityTest, augmentComplementarityCondensedHessian) {
+  SplitSolution s(robot_);
+  s.q = Eigen::VectorXd::Random(robot_.dimq());
+  robot_.generateFeasibleConfiguration(s.q);
+  s.v = Eigen::VectorXd::Random(robot_.dimv());
+  s.a = Eigen::VectorXd::Random(robot_.dimv());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot_.num_point_contacts()).array().abs();
+  s.set_f();
+  const int dimc = 6*robot_.num_point_contacts();
+  KKTMatrix kkt_matrix(robot_);
+  const Eigen::VectorXd diagonal = Eigen::VectorXd::Random(dimc).array().abs();
+  robot_.updateKinematics(s.q, s.v, s.a);
+  KKTResidual kkt_residual(robot_);
+  ConstraintComponentData data(dimc);
+  const double mu = std::abs(Eigen::VectorXd::Random(1)[0]);
+  ContactForceInequality force_inequality(robot_, mu, barrier_, fraction_to_boundary_rate_);
+  baumgarte_inequality_.augmentDualResidual(robot_, dtau_, s, data, kkt_residual);
+  baumgarte_inequality_.augmentComplementarityCondensedHessian(robot_, dtau_, s, force_inequality, diagonal, kkt_matrix);
+  Eigen::MatrixXd dbaum_dq(Eigen::MatrixXd::Zero(3*robot_.num_point_contacts(), robot_.dimv()));
+  Eigen::MatrixXd dbaum_dv(Eigen::MatrixXd::Zero(3*robot_.num_point_contacts(), robot_.dimv()));
+  Eigen::MatrixXd dbaum_da(Eigen::MatrixXd::Zero(3*robot_.num_point_contacts(), robot_.dimv()));
+  robot_.computeBaumgarteDerivatives(dbaum_dq, dbaum_dv, dbaum_da); 
+  Eigen::MatrixXd g_a(Eigen::MatrixXd::Zero(dimc, robot_.dimv()));
+  Eigen::MatrixXd g_f(Eigen::MatrixXd::Zero(dimc, 7*robot_.num_point_contacts()));
+  Eigen::MatrixXd g_q(Eigen::MatrixXd::Zero(dimc, robot_.dimv()));
+  Eigen::MatrixXd g_v(Eigen::MatrixXd::Zero(dimc, robot_.dimv()));
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    g_a.row(6*i+0) = dtau_ * dbaum_da.row(3*i+0);
+    g_a.row(6*i+1) = - dtau_ * dbaum_da.row(3*i+0);
+    g_a.row(6*i+2) = dtau_ * dbaum_da.row(3*i+1);
+    g_a.row(6*i+3) = - dtau_ * dbaum_da.row(3*i+1);
+    g_a.row(6*i+4) = dtau_ * dbaum_da.row(3*i+2);
+    g_a.row(6*i+5).setZero();
+  }
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    g_f(6*i+0, 7*i+5) = dtau_;
+    g_f(6*i+1, 7*i+5) = dtau_;
+    g_f(6*i+2, 7*i+6) = dtau_;
+    g_f(6*i+3, 7*i+6) = dtau_;
+    g_f(6*i+5, 7*i+5) = 2 * dtau_ * s.f_verbose(7*i+5);
+    g_f(6*i+5, 7*i+6) = 2 * dtau_ * s.f_verbose(7*i+6);
+  }
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    g_q.row(6*i+0) = dtau_ * dbaum_dq.row(3*i+0);
+    g_q.row(6*i+1) = - dtau_ * dbaum_dq.row(3*i+0);
+    g_q.row(6*i+2) = dtau_ * dbaum_dq.row(3*i+1);
+    g_q.row(6*i+3) = - dtau_ * dbaum_dq.row(3*i+1);
+    g_q.row(6*i+4) = dtau_ * dbaum_dq.row(3*i+2);
+    g_q.row(6*i+5).setZero();
+  }
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    g_v.row(6*i+0) = dtau_ * dbaum_dv.row(3*i+0);
+    g_v.row(6*i+1) = - dtau_ * dbaum_dv.row(3*i+0);
+    g_v.row(6*i+2) = dtau_ * dbaum_dv.row(3*i+1);
+    g_v.row(6*i+3) = - dtau_ * dbaum_dv.row(3*i+1);
+    g_v.row(6*i+4) = dtau_ * dbaum_dv.row(3*i+2);
+    g_v.row(6*i+5).setZero();
+  }
+
+  Eigen::MatrixXd g_x(Eigen::MatrixXd::Zero(dimc, 3*robot_.dimv()+7*robot_.num_point_contacts()));
+  g_x.block(0, 0, dimc, robot_.dimv()) = g_a;
+  g_x.block(0, robot_.dimv(), dimc, 7*robot_.num_point_contacts()) = g_f;
+  g_x.block(0, robot_.dimv()+7*robot_.num_point_contacts(), dimc, robot_.dimv()) = g_q;
+  g_x.block(0, 2*robot_.dimv()+7*robot_.num_point_contacts(), dimc, robot_.dimv()) = g_v;
+  std::cout << g_x << std::endl;
+
+  Eigen::MatrixXd h_f(Eigen::MatrixXd::Zero(6*robot_.num_point_contacts(), 
+                                            7*robot_.num_point_contacts()));
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    h_f(6*i+0, 7*i+0) = dtau_;
+    h_f(6*i+1, 7*i+1) = dtau_;
+    h_f(6*i+2, 7*i+2) = dtau_;
+    h_f(6*i+3, 7*i+3) = dtau_;
+    h_f(6*i+4, 7*i+4) = dtau_;
+    h_f(6*i+5, 7*i+0) = - 2 * dtau_ * s.f(3*i+0);
+    h_f(6*i+5, 7*i+1) = 2 * dtau_ * s.f(3*i+0);
+    h_f(6*i+5, 7*i+2) = - 2 * dtau_ * s.f(3*i+1);
+    h_f(6*i+5, 7*i+3) = 2 * dtau_ * s.f(3*i+1);
+    h_f(6*i+5, 7*i+4) = 2 * mu * mu * dtau_ * s.f(3*i+2);
+  }
+  Eigen::MatrixXd h_x(Eigen::MatrixXd::Zero(dimc, 3*robot_.dimv()+7*robot_.num_point_contacts()));
+  h_x.block(0, robot_.dimv(), dimc, 7*robot_.num_point_contacts()) = h_f;
+
+  KKTMatrix kkt_matrix_ref(robot_);
+  kkt_matrix_ref.costHessian() = h_x.transpose() * diagonal.asDiagonal() * g_x;
+  kkt_matrix_ref.costHessian() += g_x.transpose() * diagonal.asDiagonal() * h_x;
+  EXPECT_TRUE(kkt_matrix.Qaa().isApprox(kkt_matrix_ref.Qaa()));
+  EXPECT_TRUE(kkt_matrix.Qaf().isApprox(kkt_matrix_ref.Qaf()));
+  EXPECT_TRUE(kkt_matrix.Qaq().isApprox(kkt_matrix_ref.Qaq()));
+  EXPECT_TRUE(kkt_matrix.Qav().isApprox(kkt_matrix_ref.Qav()));
+  EXPECT_TRUE(kkt_matrix.Qff().isApprox(kkt_matrix_ref.Qff()));
+  EXPECT_TRUE(kkt_matrix.Qfq().isApprox(kkt_matrix_ref.Qfq()));
+  EXPECT_TRUE(kkt_matrix.Qfv().isApprox(kkt_matrix_ref.Qfv()));
+  EXPECT_TRUE(kkt_matrix.Qqq().isApprox(kkt_matrix_ref.Qqq()));
+  EXPECT_TRUE(kkt_matrix.Qqv().isApprox(kkt_matrix_ref.Qqv()));
+  EXPECT_TRUE(kkt_matrix.Qvv().isApprox(kkt_matrix_ref.Qvv()));
+  std::cout << kkt_matrix.Qff() << std::endl;
+  std::cout << kkt_matrix_ref.Qff() << std::endl;
+}
+
+
 TEST_F(FloatingBaseBaumgarteInequalityTest, augmentCondensedResidual) {
   SplitSolution s(robot_);
   s.q = Eigen::VectorXd::Random(robot_.dimq());

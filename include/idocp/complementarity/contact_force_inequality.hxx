@@ -168,4 +168,9 @@ inline void ContactForceInequality::computeSlackDirection(
   data.dslack.noalias() -= data.residual;
 }
 
+
+inline double ContactForceInequality::mu() const {
+  return mu_;
+}
+
 } // namespace idocp
