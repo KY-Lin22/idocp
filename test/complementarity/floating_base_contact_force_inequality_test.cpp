@@ -157,6 +157,7 @@ TEST_F(FloatingBaseContactForceInequalityTest, augmentCondensedHessian) {
   Eigen::MatrixXd Qff_ref(Eigen::MatrixXd::Zero(7*robot_.num_point_contacts(), 7*robot_.num_point_contacts()));
   Qff_ref = g_f.transpose() * diagonal.asDiagonal() * g_f;
   EXPECT_TRUE(kkt_matrix.Qff().isApprox(Qff_ref));
+  std::cout << Qff_ref << std::endl;
 }
 
 
