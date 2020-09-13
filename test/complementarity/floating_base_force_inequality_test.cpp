@@ -19,6 +19,7 @@ namespace idocp {
 class FloatingBaseForceInequalityTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
+    srand((unsigned int) time(0));
     mu_ = std::abs(Eigen::VectorXd::Random(1)[0]);
     barrier_ = 1.0e-04;
     dtau_ = std::abs(Eigen::VectorXd::Random(1)[0]);
@@ -102,22 +103,23 @@ TEST_F(FloatingBaseForceInequalityTest, augmentDualResidual) {
   data.dual = Eigen::VectorXd::Random(dimc).array().abs();
   KKTResidual kkt_residual(robot_);
   force_inequality_.augmentDualResidual(robot_, dtau_, s, data, kkt_residual);
-  Eigen::MatrixXd g_x (Eigen::MatrixXd::Zero(6*robot_.num_point_contacts(), 
-                                             7*robot_.num_point_contacts()));
+  Eigen::MatrixXd g_f(Eigen::MatrixXd::Zero(6*robot_.num_point_contacts(), 
+                                            7*robot_.num_point_contacts()));
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
-    g_x(6*i+0, 7*i+0) = dtau_;
-    g_x(6*i+1, 7*i+1) = dtau_;
-    g_x(6*i+2, 7*i+2) = dtau_;
-    g_x(6*i+3, 7*i+3) = dtau_;
-    g_x(6*i+4, 7*i+4) = dtau_;
-    g_x(6*i+5, 7*i+0) = - 2 * dtau_ * s.f(3*i+0);
-    g_x(6*i+5, 7*i+1) = 2 * dtau_ * s.f(3*i+0);
-    g_x(6*i+5, 7*i+2) = - 2 * dtau_ * s.f(3*i+1);
-    g_x(6*i+5, 7*i+3) = 2 * dtau_ * s.f(3*i+1);
-    g_x(6*i+5, 7*i+4) = 2 * mu_ * mu_ * dtau_ * s.f(3*i+2);
+    g_f(6*i+0, 7*i+0) = dtau_;
+    g_f(6*i+1, 7*i+1) = dtau_;
+    g_f(6*i+2, 7*i+2) = dtau_;
+    g_f(6*i+3, 7*i+3) = dtau_;
+    g_f(6*i+4, 7*i+4) = dtau_;
+    g_f(6*i+5, 7*i+0) = - 2 * dtau_ * s.f(3*i+0);
+    g_f(6*i+5, 7*i+1) = 2 * dtau_ * s.f(3*i+0);
+    g_f(6*i+5, 7*i+2) = - 2 * dtau_ * s.f(3*i+1);
+    g_f(6*i+5, 7*i+3) = 2 * dtau_ * s.f(3*i+1);
+    g_f(6*i+5, 7*i+4) = 2 * mu_ * mu_ * dtau_ * s.f(3*i+2);
   }
+  std::cout << g_f << std::endl;
   Eigen::VectorXd residual_ref(Eigen::VectorXd::Zero(7*robot_.num_point_contacts()));
-  residual_ref = - g_x.transpose() * data.dual;
+  residual_ref = - g_f.transpose() * data.dual;
   EXPECT_TRUE(kkt_residual.lf().isApprox(residual_ref));
 }
 
