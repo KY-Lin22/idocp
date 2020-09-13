@@ -4,16 +4,22 @@
 #include "Eigen/Core"
 
 #include "idocp/robot/robot.hpp"
+#include "idocp/ocp/split_solution.hpp"
+#include "idocp/ocp/split_direction.hpp"
+#include "idocp/ocp/kkt_matrix.hpp"
+#include "idocp/ocp/kkt_residual.hpp"
 #include "idocp/constraints/constraint_component_data.hpp"
+#include "idocp/complementarity/force_inequality.hpp"
+#include "idocp/complementarity/baumgarte_inequality.hpp"
 
 
 namespace idocp {
 class ContactComplementarity {
-private:
+public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   ContactComplementarity(const Robot& robot, const double mu,  
-                         const double max_complementarity=1.0e-02, 
+                         const double max_complementarity_violation=1.0e-04, 
                          const double barrier=1.0e-04,
                          const double fraction_to_boundary_rate=0.995);
 
@@ -29,38 +35,41 @@ private:
 
   ContactComplementarity& operator=(ContactComplementarity&&) noexcept = default;
 
-  bool useKinematics() const override;
-
   bool isFeasible(Robot& robot, const SplitSolution& s);
 
   void setSlackAndDual(Robot& robot, const double dtau, const SplitSolution& s);
 
+  void computeResidual(Robot& robot, const double dtau, const SplitSolution& s);
+
   void augmentDualResidual(Robot& robot, const double dtau, 
-                           KKTResidual& kkt_residual);
+                           const SplitSolution& s, KKTResidual& kkt_residual);
 
   void condenseSlackAndDual(Robot& robot, const double dtau, 
                             const SplitSolution& s, KKTMatrix& kkt_matrix,
                             KKTResidual& kkt_residual);
 
   void computeSlackAndDualDirection(const Robot& robot, const double dtau, 
+                                    const SplitSolution& s, 
                                     const SplitDirection& d); 
 
-  double residualL1Nrom(const Robot& robot, const double dtau, 
-                        const SplitSolution& s) const;
+  // double residualL1Nrom(const Robot& robot, const double dtau, 
+  //                       const SplitSolution& s) const;
 
-  double squaredKKTErrorNorm(Robot& robot, const double dtau, 
-                             const SplitSolution& s) const;
+  // double squaredKKTErrorNorm(Robot& robot, const double dtau, 
+  //                            const SplitSolution& s) const;
 
-public:
-  int num_point_contacts_, dimf_, dimc_; 
-  double mu_, max_complementarity_, barrier_, fraction_to_boundary_rate_;
-  ConstraintComponentData f_data_, h_data_, c_data_;
-  Eigen::VectorXd Sigma_g_, Sigma_h_, Gamma_w_, Gamma_tt_, Gamma_ts_, Gamma_st_, Gamma_ss_;
+private:
+  int dimc_; 
+  double max_complementarity_violation_, barrier_, fraction_to_boundary_rate_;
+  ForceInequality force_inequality_;
+  BaumgarteInequality baumgarte_inequality_;
+  ConstraintComponentData force_data_, baumgarte_data_, complementarity_data_;
+  Eigen::VectorXd s_g_, s_h_, g_w_, g_ss_, g_st_, g_tt_;
 
 };
 
 } // namespace idocp 
 
-#include "idocp/ocp/contact_complementarity.hxx"
+#include "idocp/complementarity/contact_complementarity.hxx"
 
 #endif // IDOCP_CONTACT_COMPLEMENTARITY_HPP_ 

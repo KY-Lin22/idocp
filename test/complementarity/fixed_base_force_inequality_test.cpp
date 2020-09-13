@@ -108,6 +108,39 @@ TEST_F(FixedBaseForceInequalityTest, augmentDualResidual) {
   EXPECT_TRUE(kkt_residual.lf().isApprox(residual_ref));
 }
 
+
+TEST_F(FixedBaseForceInequalityTest, computeSlackDirection) {
+  SplitSolution s(robot_);
+  s.f_verbose = Eigen::VectorXd::Random(7*robot_.num_point_contacts()).array().abs();
+  s.set_f();
+  s.f_verbose(4) = 1.1 * std::sqrt((s.f(0)*s.f(0)+s.f(1)*s.f(1))/(mu_*mu_));
+  s.set_f();
+  ASSERT_TRUE(force_inequality_.isFeasible(robot_, s));
+  ConstraintComponentData data(6);
+  data.residual = Eigen::VectorXd::Random(6);
+  SplitDirection d(robot_);
+  d.df() = Eigen::VectorXd::Random(7*robot_.num_point_contacts());
+  force_inequality_.computeSlackDirection(robot_, dtau_, s, d, data);
+  Eigen::MatrixXd g_f(Eigen::MatrixXd::Zero(6, 7));
+  g_f(0, 0) = dtau_;
+  g_f(1, 1) = dtau_;
+  g_f(2, 2) = dtau_;
+  g_f(3, 3) = dtau_;
+  g_f(4, 4) = dtau_;
+  g_f(5, 0) = - 2 * dtau_ * s.f(0);
+  g_f(5, 1) = 2 * dtau_ * s.f(0);
+  g_f(5, 2) = - 2 * dtau_ * s.f(1);
+  g_f(5, 3) = 2 * dtau_ * s.f(1);
+  g_f(5, 4) = 2 * mu_ * mu_ * dtau_ * s.f(2);
+  std::cout << g_f << std::endl;
+  Eigen::VectorXd dslack_ref(Eigen::VectorXd::Zero(7));
+  dslack_ref = g_f * d.df() - data.residual;
+  EXPECT_TRUE(data.dslack.isApprox(dslack_ref));
+  std::cout << data.dslack.transpose() << std::endl;
+  std::cout << dslack_ref.transpose() << std::endl;
+}
+
+
 } // namespace idocp
 
 

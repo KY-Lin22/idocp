@@ -147,6 +147,74 @@ TEST_F(FixedBaseBaumgarteInequalityTest, augmentDualResidual) {
   EXPECT_TRUE(kkt_residual.lv().isApprox(lv_ref));
 }
 
+
+TEST_F(FixedBaseBaumgarteInequalityTest, computeSlackDirection) {
+  SplitSolution s(robot_);
+  s.q = Eigen::VectorXd::Random(robot_.dimq());
+  robot_.generateFeasibleConfiguration(s.q);
+  s.v = Eigen::VectorXd::Random(robot_.dimv());
+  s.a = Eigen::VectorXd::Random(robot_.dimv());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot_.num_point_contacts()).array().abs();
+  s.set_f();
+  SplitDirection d(robot_);
+  d.da() = Eigen::VectorXd::Random(robot_.dimv());
+  d.df() = Eigen::VectorXd::Random(7);
+  d.dq() = Eigen::VectorXd::Random(robot_.dimv());
+  d.dv() = Eigen::VectorXd::Random(robot_.dimv());
+  ConstraintComponentData data(6);
+  data.residual = Eigen::VectorXd::Random(6*robot_.num_point_contacts());
+  robot_.updateKinematics(s.q, s.v, s.a);
+  KKTResidual kkt_residual(robot_);
+  baumgarte_inequality_.augmentDualResidual(robot_, dtau_, s, data, kkt_residual);
+  baumgarte_inequality_.computeSlackDirection(robot_, dtau_, s, d, data);
+  Eigen::MatrixXd dbaum_dq(Eigen::MatrixXd::Zero(3, robot_.dimv()));
+  Eigen::MatrixXd dbaum_dv(Eigen::MatrixXd::Zero(3, robot_.dimv()));
+  Eigen::MatrixXd dbaum_da(Eigen::MatrixXd::Zero(3, robot_.dimv()));
+  robot_.computeBaumgarteDerivatives(dbaum_dq, dbaum_dv, dbaum_da); 
+  Eigen::MatrixXd g_a(Eigen::MatrixXd::Zero(6, robot_.dimv()));
+  Eigen::MatrixXd g_f(Eigen::MatrixXd::Zero(6, 7));
+  Eigen::MatrixXd g_q(Eigen::MatrixXd::Zero(6, robot_.dimv()));
+  Eigen::MatrixXd g_v(Eigen::MatrixXd::Zero(6, robot_.dimv()));
+  g_a.row(0) = dtau_ * dbaum_da.row(0);
+  g_a.row(1) = - dtau_ * dbaum_da.row(0);
+  g_a.row(2) = dtau_ * dbaum_da.row(1);
+  g_a.row(3) = - dtau_ * dbaum_da.row(1);
+  g_a.row(4) = dtau_ * dbaum_da.row(2);
+  g_a.row(5).setZero();
+
+  g_f(0, 5) = dtau_;
+  g_f(1, 5) = dtau_;
+  g_f(2, 6) = dtau_;
+  g_f(3, 6) = dtau_;
+  g_f(5, 5) = 2 * dtau_ * s.f_verbose(5);
+  g_f(5, 6) = 2 * dtau_ * s.f_verbose(6);
+
+  g_q.row(0) = dtau_ * dbaum_dq.row(0);
+  g_q.row(1) = - dtau_ * dbaum_dq.row(0);
+  g_q.row(2) = dtau_ * dbaum_dq.row(1);
+  g_q.row(3) = - dtau_ * dbaum_dq.row(1);
+  g_q.row(4) = dtau_ * dbaum_dq.row(2);
+  g_q.row(5).setZero();
+
+  g_v.row(0) = dtau_ * dbaum_dv.row(0);
+  g_v.row(1) = - dtau_ * dbaum_dv.row(0);
+  g_v.row(2) = dtau_ * dbaum_dv.row(1);
+  g_v.row(3) = - dtau_ * dbaum_dv.row(1);
+  g_v.row(4) = dtau_ * dbaum_dv.row(2);
+  g_v.row(5).setZero();
+
+  std::cout << g_f << std::endl;
+  Eigen::VectorXd dslack_ref(Eigen::VectorXd::Zero(6));
+  dslack_ref += g_a * d.da();
+  dslack_ref += g_f * d.df();
+  dslack_ref += g_q * d.dq();
+  dslack_ref += g_v * d.dv();
+  dslack_ref -= data.residual;
+  EXPECT_TRUE(data.dslack.isApprox(dslack_ref));
+  std::cout << data.dslack.transpose() << std::endl;
+  std::cout << dslack_ref.transpose() << std::endl;
+}
+
 } // namespace idocp
 
 
