@@ -165,36 +165,30 @@ inline void BaumgarteInequality::computeSlackDirection(
   constexpr int kDimc = 6;
   constexpr int kDimf_verbose = 7;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    data.dslack.coeffRef(kDimb*i  ) = dtau * dBaumgarte_da_.row(kDimb*i  ) * d.da();
-    data.dslack.coeffRef(kDimb*i+1) = - dtau * dBaumgarte_da_.row(kDimb*i  ) * d.da();
-    data.dslack.coeffRef(kDimb*i+2) = dtau * dBaumgarte_da_.row(kDimb*i+1) * d.da();
-    data.dslack.coeffRef(kDimb*i+3) = - dtau * dBaumgarte_da_.row(kDimb*i+1) * d.da();
-    data.dslack.coeffRef(kDimb*i+4) = dtau * dBaumgarte_da_.row(kDimb*i+2) * d.da();
+    data.dslack.coeffRef(kDimc*i  ) = dtau * dBaumgarte_da_.row(kDimb*i  ) * d.da();
+    data.dslack.coeffRef(kDimc*i+1) = - dtau * dBaumgarte_da_.row(kDimb*i  ) * d.da();
+    data.dslack.coeffRef(kDimc*i+2) = dtau * dBaumgarte_da_.row(kDimb*i+1) * d.da();
+    data.dslack.coeffRef(kDimc*i+3) = - dtau * dBaumgarte_da_.row(kDimb*i+1) * d.da();
+    data.dslack.coeffRef(kDimc*i+4) = dtau * dBaumgarte_da_.row(kDimb*i+2) * d.da();
 
-    data.dslack.coeffRef(kDimb*i  ) 
-        += dtau * d.df().coeff(kDimf_verbose*i+5);
-    data.dslack.coeffRef(kDimb*i+1) 
-        += dtau * d.df().coeff(kDimf_verbose*i+5);
-    data.dslack.coeffRef(kDimb*i+2) 
-        += dtau * d.df().coeff(kDimf_verbose*i+6);
-    data.dslack.coeffRef(kDimb*i+3) 
-        += dtau * d.df().coeff(kDimf_verbose*i+6);
-    data.dslack.coeffRef(kDimb*i+5) 
-        = 2 * dtau * s.f_verbose(kDimf_verbose*i+5) * d.df().coeff(kDimf_verbose*i+5);
-    data.dslack.coeffRef(kDimb*i+5) 
-        += 2 * dtau * s.f_verbose(kDimf_verbose*i+6) * d.df().coeff(kDimf_verbose*i+6);
+    data.dslack.coeffRef(kDimc*i  ) += dtau * d.df().coeff(kDimf_verbose*i+5);
+    data.dslack.coeffRef(kDimc*i+1) += dtau * d.df().coeff(kDimf_verbose*i+5);
+    data.dslack.coeffRef(kDimc*i+2) += dtau * d.df().coeff(kDimf_verbose*i+6);
+    data.dslack.coeffRef(kDimc*i+3) += dtau * d.df().coeff(kDimf_verbose*i+6);
+    data.dslack.coeffRef(kDimc*i+5) = 2 * dtau * s.f_verbose(kDimf_verbose*i+5) * d.df().coeff(kDimf_verbose*i+5);
+    data.dslack.coeffRef(kDimc*i+5) += 2 * dtau * s.f_verbose(kDimf_verbose*i+6) * d.df().coeff(kDimf_verbose*i+6);
 
-    data.dslack.coeffRef(kDimb*i  ) += dtau * dBaumgarte_dq_.row(kDimb*i  ) * d.dq();
-    data.dslack.coeffRef(kDimb*i+1) += - dtau * dBaumgarte_dq_.row(kDimb*i  ) * d.dq();
-    data.dslack.coeffRef(kDimb*i+2) += dtau * dBaumgarte_dq_.row(kDimb*i+1) * d.dq();
-    data.dslack.coeffRef(kDimb*i+3) += - dtau * dBaumgarte_dq_.row(kDimb*i+1) * d.dq();
-    data.dslack.coeffRef(kDimb*i+4) += dtau * dBaumgarte_dq_.row(kDimb*i+2) * d.dq();
+    data.dslack.coeffRef(kDimc*i  ) += dtau * dBaumgarte_dq_.row(kDimb*i  ) * d.dq();
+    data.dslack.coeffRef(kDimc*i+1) += - dtau * dBaumgarte_dq_.row(kDimb*i  ) * d.dq();
+    data.dslack.coeffRef(kDimc*i+2) += dtau * dBaumgarte_dq_.row(kDimb*i+1) * d.dq();
+    data.dslack.coeffRef(kDimc*i+3) += - dtau * dBaumgarte_dq_.row(kDimb*i+1) * d.dq();
+    data.dslack.coeffRef(kDimc*i+4) += dtau * dBaumgarte_dq_.row(kDimb*i+2) * d.dq();
 
-    data.dslack.coeffRef(kDimb*i  ) += dtau * dBaumgarte_dv_.row(kDimb*i  ) * d.dv();
-    data.dslack.coeffRef(kDimb*i+1) += - dtau * dBaumgarte_dv_.row(kDimb*i  ) * d.dv();
-    data.dslack.coeffRef(kDimb*i+2) += dtau * dBaumgarte_dv_.row(kDimb*i+1) * d.dv();
-    data.dslack.coeffRef(kDimb*i+3) += - dtau * dBaumgarte_dv_.row(kDimb*i+1) * d.dv();
-    data.dslack.coeffRef(kDimb*i+4) += dtau * dBaumgarte_dv_.row(kDimb*i+2) * d.dv();
+    data.dslack.coeffRef(kDimc*i  ) += dtau * dBaumgarte_dv_.row(kDimb*i  ) * d.dv();
+    data.dslack.coeffRef(kDimc*i+1) += - dtau * dBaumgarte_dv_.row(kDimb*i  ) * d.dv();
+    data.dslack.coeffRef(kDimc*i+2) += dtau * dBaumgarte_dv_.row(kDimb*i+1) * d.dv();
+    data.dslack.coeffRef(kDimc*i+3) += - dtau * dBaumgarte_dv_.row(kDimb*i+1) * d.dv();
+    data.dslack.coeffRef(kDimc*i+4) += dtau * dBaumgarte_dv_.row(kDimb*i+2) * d.dv();
   }
   data.dslack.noalias() -= data.residual;
 }

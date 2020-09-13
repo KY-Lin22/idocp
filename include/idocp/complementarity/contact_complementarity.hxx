@@ -20,8 +20,9 @@ inline ContactComplementarity::ContactComplementarity(
     s_g_(Eigen::VectorXd::Zero(dimc_)), 
     s_h_(Eigen::VectorXd::Zero(dimc_)), 
     g_w_(Eigen::VectorXd::Zero(dimc_)), 
-    g_tt_(Eigen::VectorXd::Zero(dimc_)), 
-    g_ss_(Eigen::VectorXd::Zero(dimc_)) {
+    g_ss_(Eigen::VectorXd::Zero(dimc_)), 
+    g_st_(Eigen::VectorXd::Zero(dimc_)), 
+    g_tt_(Eigen::VectorXd::Zero(dimc_)) {
 }
 
 
@@ -38,8 +39,9 @@ inline ContactComplementarity::ContactComplementarity()
     s_g_(), 
     s_h_(), 
     g_w_(), 
-    g_tt_(), 
-    g_ss_() {
+    g_ss_(), 
+    g_st_(), 
+    g_tt_() {
 }
 
 
@@ -112,31 +114,51 @@ inline void ContactComplementarity::condenseSlackAndDual(
   g_ss_.array() = force_data_.slack.array() * g_w_.array() * force_data_.slack.array();
   g_st_.array() = force_data_.slack.array() * g_w_.array() * baumgarte_data_.slack.array();
   g_tt_.array() = baumgarte_data_.slack.array() * g_w_.array() * baumgarte_data_.slack.array();
-
 }
 
 
 inline void ContactComplementarity::computeSlackAndDualDirection(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     const SplitDirection& d) {
+  assert(dtau > 0);
+  force_inequality_.computeSlackDirection(robot, dtau, s, d, force_data_);
+  baumgarte_inequality_.computeSlackDirection(robot, dtau, s, d, baumgarte_data_);
+  complementarity_data_.dslack.array() 
+      = - force_data_.slack.array() * baumgarte_data_.dslack.array() 
+        - baumgarte_data_.slack.array() * force_data_.dslack.array()
+        - complementarity_data_.residual.array();
+  complementarity_data_.ddual.array() 
+      = - g_w_.array() * complementarity_data_.dslack.array()
+        - complementarity_data_.duality.array() / complementarity_data_.slack.array();
+  force_data_.ddual.array()
+      = - s_g_.array() * force_data_.dslack.array()
+        - complementarity_data_.dual.array() * baumgarte_data_.dslack.array()
+        - complementarity_data_.ddual.array() * baumgarte_data_.slack.array()
+        - force_data_.duality.array() / force_data_.slack.array();
+  baumgarte_data_.ddual.array()
+      = - s_h_.array() * baumgarte_data_.dslack.array()
+        - complementarity_data_.dual.array() * force_data_.dslack.array()
+        - complementarity_data_.ddual.array() * force_data_.slack.array()
+        - baumgarte_data_.duality.array() / baumgarte_data_.slack.array();
 }
 
 
-// inline double ContactComplementarity::residualL1Nrom(
-//     const Robot& robot, const double dtau, const SplitSolution& s) const {
-//   data.residual = dtau * (amin_-s.a.tail(dimc_)) + data.slack;
-//   return data.residual.lpNorm<1>();
-// }
+inline double ContactComplementarity::residualL1Nrom(
+    const Robot& robot, const double dtau, const SplitSolution& s) const {
+  double error = 0;
+  // error += data.residual.squaredNorm();
+  // error += data.duality.squaredNorm();
+  return error;
+  // return data.residual.lpNorm<1>();
+}
 
 
-// inline double ContactComplementarity::squaredKKTErrorNorm(
-//     Robot& robot, const double dtau, const SplitSolution& s) const {
-//   data.residual = dtau * (amin_-s.a.tail(dimc_)) + data.slack;
-//   computeDuality(data.slack, data.dual, data.duality);
-//   double error = 0;
-//   error += data.residual.squaredNorm();
-//   error += data.duality.squaredNorm();
-//   return error;
-// }
+inline double ContactComplementarity::squaredKKTErrorNorm(
+    Robot& robot, const double dtau, const SplitSolution& s) const {
+  double error = 0;
+  // error += data.residual.squaredNorm();
+  // error += data.duality.squaredNorm();
+  return error;
+}
 
 } // namespace idocp

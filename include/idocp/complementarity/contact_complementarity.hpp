@@ -52,11 +52,11 @@ public:
                                     const SplitSolution& s, 
                                     const SplitDirection& d); 
 
-  // double residualL1Nrom(const Robot& robot, const double dtau, 
-  //                       const SplitSolution& s) const;
+  double residualL1Nrom(const Robot& robot, const double dtau, 
+                        const SplitSolution& s) const;
 
-  // double squaredKKTErrorNorm(Robot& robot, const double dtau, 
-  //                            const SplitSolution& s) const;
+  double squaredKKTErrorNorm(Robot& robot, const double dtau, 
+                             const SplitSolution& s) const;
 
 private:
   int dimc_; 
