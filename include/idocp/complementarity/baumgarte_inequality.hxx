@@ -169,6 +169,7 @@ inline void BaumgarteInequality::augmentCondensedHessian(
       += (dtau*dtau) * dBaumgarte_verbose_da_.transpose() 
                      * diagonal.asDiagonal() * dBaumgarte_verbose_da_;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
+    std::cout << i << std::endl;
     kkt_matrix.Qaf().col(kDimf_verbose*i+5).noalias() 
         += (dtau*dtau) * (diagonal.coeff(kDimc*i  )-diagonal.coeff(kDimc*i+1)) 
                        * dBaumgarte_da_.row(kDimb*i  ).transpose();
@@ -183,6 +184,7 @@ inline void BaumgarteInequality::augmentCondensedHessian(
       += (dtau*dtau) * dBaumgarte_verbose_da_.transpose() 
                      * diagonal.asDiagonal() * dBaumgarte_verbose_dv_;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
+    std::cout << i << std::endl;
     kkt_matrix.Qff().coeffRef(kDimf_verbose*i+5, kDimf_verbose*i+5) 
         += (dtau*dtau) * (diagonal.coeff(kDimc*i  ) + diagonal.coeff(kDimc*i+1) 
                            + 4 * diagonal.coeff(kDimc*i+5) 
@@ -203,6 +205,7 @@ inline void BaumgarteInequality::augmentCondensedHessian(
                                * s.f_verbose.coeff(kDimf_verbose*i+6));
   }
   for (int i=0; i<robot.num_point_contacts(); ++i) {
+    std::cout << i << std::endl;
     kkt_matrix.Qfq().row(kDimf_verbose*i+5).noalias() 
         += (dtau*dtau) * (diagonal.coeff(kDimc*i  )-diagonal.coeff(kDimc*i+1)) 
                        * dBaumgarte_dq_.row(kDimb*i  ).transpose();
@@ -211,6 +214,7 @@ inline void BaumgarteInequality::augmentCondensedHessian(
                        * dBaumgarte_dq_.row(kDimb*i+1).transpose();
   }
   for (int i=0; i<robot.num_point_contacts(); ++i) {
+    std::cout << i << std::endl;
     kkt_matrix.Qfv().row(kDimf_verbose*i+5).noalias() 
         += (dtau*dtau) * (diagonal.coeff(kDimc*i  )-diagonal.coeff(kDimc*i+1)) 
                        * dBaumgarte_dv_.row(kDimb*i  ).transpose();
@@ -227,6 +231,32 @@ inline void BaumgarteInequality::augmentCondensedHessian(
   kkt_matrix.Qvv().noalias() 
       += (dtau*dtau) * dBaumgarte_verbose_dv_.transpose() 
                      * diagonal.asDiagonal() * dBaumgarte_verbose_dv_;
+}
+
+
+inline void BaumgarteInequality::augmentCondensedResidual(
+    Robot& robot, const double dtau, const SplitSolution& s, 
+    const Eigen::VectorXd& condensed_residual, KKTResidual& kkt_residual) {
+  assert(dtau > 0);
+  assert(condensed_residual.size() == kDimc*robot.num_point_contacts());
+  kkt_residual.la().noalias() 
+      += dtau * dBaumgarte_verbose_da_.transpose() * condensed_residual;
+  for (int i=0; i<robot.num_point_contacts(); ++i) {
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+5)
+        += dtau * (condensed_residual.coeff(kDimc*i  ) 
+                    + condensed_residual.coeff(kDimc*i+1)
+                    + 2 * s.f_verbose.coeff(kDimf_verbose*i+5) 
+                        * condensed_residual.coeff(kDimc*i+5));
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+6)
+        += dtau * (condensed_residual.coeff(kDimc*i+2) 
+                    + condensed_residual.coeff(kDimc*i+3)
+                    + 2 * s.f_verbose.coeff(kDimf_verbose*i+6) 
+                        * condensed_residual.coeff(kDimc*i+5));
+  }
+  kkt_residual.lq().noalias() 
+      += dtau * dBaumgarte_verbose_dq_.transpose() * condensed_residual;
+  kkt_residual.lv().noalias() 
+      += dtau * dBaumgarte_verbose_dv_.transpose() * condensed_residual;
 }
 
 
