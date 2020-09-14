@@ -8,7 +8,7 @@ namespace idocp {
 inline ContactForceInequality::ContactForceInequality(const Robot& robot, 
                                                       const double mu)
   : num_point_contacts_(robot.num_point_contacts()),
-    dimc_(6*robot.num_point_contacts()),
+    dimc_(kDimc*robot.num_point_contacts()),
     mu_(mu) {
   f_rsc_.setZero();
 }
@@ -53,9 +53,9 @@ inline void ContactForceInequality::setSlack(const Robot& robot,
                                              ConstraintComponentData& data) {
   assert(dtau > 0);
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(5*i  )-s.f.coeff(5*i+1));
-    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(5*i+2)-s.f.coeff(5*i+3));
-    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(5*i+4));
+    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(kDimf*i  )-s.f.coeff(kDimf*i+1));
+    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(kDimf*i+2)-s.f.coeff(kDimf*i+3));
+    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(kDimf*i+4));
     data.slack.template segment<kDimf>(kDimc*i) 
         = dtau * s.f.template segment<kDimf>(kDimf*i);
     const double fx = s.f_3D.coeff(3*i  );
@@ -72,9 +72,9 @@ inline void ContactForceInequality::computePrimalResidual(
   assert(dtau > 0);
   data.residual = data.slack;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(5*i  )-s.f.coeff(5*i+1));
-    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(5*i+2)-s.f.coeff(5*i+3));
-    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(5*i+4));
+    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(kDimf*i  )-s.f.coeff(kDimf*i+1));
+    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(kDimf*i+2)-s.f.coeff(kDimf*i+3));
+    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(kDimf*i+4));
     data.residual.template segment<kDimf>(kDimc*i).noalias() 
         -= dtau * s.f.template segment<kDimf>(kDimf*i);
     const double fx = s.f_3D.coeff(3*i  );
@@ -91,9 +91,9 @@ inline void ContactForceInequality::augmentDualResidual(
     const ConstraintComponentData& data, KKTResidual& kkt_residual) {
   assert(dtau > 0);
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(5*i  )-s.f.coeff(5*i+1));
-    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(5*i+2)-s.f.coeff(5*i+3));
-    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(5*i+4));
+    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(kDimf*i  )-s.f.coeff(kDimf*i+1));
+    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(kDimf*i+2)-s.f.coeff(kDimf*i+3));
+    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(kDimf*i+4));
     kkt_residual.lf().template segment<kDimf>(kDimf*i).noalias() 
         -= dtau * data.dual.template segment<kDimf>(kDimc*i);
     const double fx = s.f_3D.coeff(3*i  );
@@ -117,9 +117,9 @@ inline void ContactForceInequality::augmentCondensedHessian(
   assert(dtau > 0);
   assert(diagonal.size() == kDimc*robot.num_point_contacts());
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(5*i  )-s.f.coeff(5*i+1));
-    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(5*i+2)-s.f.coeff(5*i+3));
-    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(5*i+4));
+    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(kDimf*i  )-s.f.coeff(kDimf*i+1));
+    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(kDimf*i+2)-s.f.coeff(kDimf*i+3));
+    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(kDimf*i+4));
     f_rsc_.coeffRef(0) = - s.f_3D.coeff(3*i  );
     f_rsc_.coeffRef(1) =   s.f_3D.coeff(3*i  );
     f_rsc_.coeffRef(2) = - s.f_3D.coeff(3*i+1);
@@ -140,9 +140,9 @@ inline void ContactForceInequality::augmentCondensedResidual(
   assert(dtau > 0);
   assert(residual.size() == kDimc*robot.num_point_contacts());
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(5*i  )-s.f.coeff(5*i+1));
-    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(5*i+2)-s.f.coeff(5*i+3));
-    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(5*i+4));
+    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(kDimf*i  )-s.f.coeff(kDimf*i+1));
+    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(kDimf*i+2)-s.f.coeff(kDimf*i+3));
+    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(kDimf*i+4));
     f_rsc_.coeffRef(0) = - s.f_3D.coeff(3*i  );
     f_rsc_.coeffRef(1) =   s.f_3D.coeff(3*i  );
     f_rsc_.coeffRef(2) = - s.f_3D.coeff(3*i+1);
@@ -161,9 +161,9 @@ inline void ContactForceInequality::computeSlackDirection(
     const SplitDirection& d, ConstraintComponentData& data) const {
   assert(dtau > 0);
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(5*i  )-s.f.coeff(5*i+1));
-    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(5*i+2)-s.f.coeff(5*i+3));
-    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(5*i+4));
+    assert(s.f_3D.coeff(3*i  ) == s.f.coeff(kDimf*i  )-s.f.coeff(kDimf*i+1));
+    assert(s.f_3D.coeff(3*i+1) == s.f.coeff(kDimf*i+2)-s.f.coeff(kDimf*i+3));
+    assert(s.f_3D.coeff(3*i+2) == s.f.coeff(kDimf*i+4));
     data.dslack.template segment<kDimf>(kDimc*i) 
         = dtau * d.df().template segment<kDimf>(kDimf*i);
     data.dslack.coeffRef(kDimc*i+kDimf) 

@@ -45,19 +45,22 @@ public:
                            const ConstraintComponentData& data,
                            KKTResidual& kkt_residual);
 
+  template <typename VectorType>
   void augmentCondensedHessian(Robot& robot, const double dtau, 
                                const SplitSolution& s,
-                               const Eigen::VectorXd& diagonal,
+                               const Eigen::MatrixBase<VectorType>& diagonal,
                                KKTMatrix& kkt_matrix); 
 
+  template <typename VectorType>
   void augmentComplementarityCondensedHessian(
       Robot& robot, const double dtau, const SplitSolution& s, 
       const ContactForceInequality& contact_force_inequality, 
-      const Eigen::VectorXd& diagonal, KKTMatrix& kkt_matrix); 
+      const Eigen::MatrixBase<VectorType>& diagonal, KKTMatrix& kkt_matrix); 
 
+  template <typename VectorType>
   void augmentCondensedResidual(Robot& robot, const double dtau, 
                                 const SplitSolution& s, 
-                                const Eigen::VectorXd& condensed_residual, 
+                                const Eigen::MatrixBase<VectorType>& residual,
                                 KKTResidual& kkt_residual);
 
   void computeSlackDirection(const Robot& robot, const double dtau, 
@@ -65,16 +68,14 @@ public:
                              ConstraintComponentData& data) const; 
 
 private:
-  static constexpr int kDimb = 3;
   static constexpr int kDimf = 5;
   static constexpr int kDimc = 6;
-  static constexpr int kDimf_verbose = 7;
   int num_point_contacts_, dimc_; 
   Eigen::VectorXd Baumgarte_residual_;
   Eigen::MatrixXd dBaumgarte_dq_, dBaumgarte_dv_, dBaumgarte_da_,
                   dBaumgarte_verbose_dq_, dBaumgarte_verbose_dv_, 
                   dBaumgarte_verbose_da_;
-  Eigen::Matrix<double, 2, kDimf> Qff_rsc_;
+  Eigen::Matrix<double, kDimf, 2> Qfr_rsc_;
   Eigen::Matrix<double, kDimf, 1> f_rsc_;
 
 };
