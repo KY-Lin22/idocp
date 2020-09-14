@@ -26,11 +26,14 @@ public:
 
   SplitSolution& operator=(SplitSolution&&) noexcept = default;
 
-  void set_f();
+  void set_f_3D();
 
-  Eigen::VectorXd lmd, gmm, mu, a, f, f_verbose, q, v, u, beta;
+  Eigen::VectorXd lmd, gmm, mu, a, f, f_3D, r, q, v, u, beta;
 
 private:
+  static constexpr int kDimf_3D = 3;
+  static constexpr int kDimf = 5;
+  static constexpr int kDimr = 2;
   int num_point_contacts_;
 
 };

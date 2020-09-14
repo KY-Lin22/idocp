@@ -38,13 +38,15 @@ public:
 
   Eigen::VectorBlock<Eigen::VectorXd> lf();
 
+  Eigen::VectorBlock<Eigen::VectorXd> lr();
+
   Eigen::VectorBlock<Eigen::VectorXd> lq();
 
   Eigen::VectorBlock<Eigen::VectorXd> lv();
 
   Eigen::VectorBlock<Eigen::VectorXd> lx();
 
-  Eigen::VectorBlock<Eigen::VectorXd> laf();
+  Eigen::VectorBlock<Eigen::VectorXd> l_afr();
 
   const Eigen::VectorBlock<const Eigen::VectorXd> Fq() const;
 
@@ -58,17 +60,17 @@ public:
 
   const Eigen::VectorBlock<const Eigen::VectorXd> lf() const;
 
+  const Eigen::VectorBlock<const Eigen::VectorXd> lr() const;
+
   const Eigen::VectorBlock<const Eigen::VectorXd> lq() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> lv() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> lx() const;
 
-  const Eigen::VectorBlock<const Eigen::VectorXd> laf() const;
+  const Eigen::VectorBlock<const Eigen::VectorXd> l_afr() const;
 
   double squaredKKTErrorNorm(const double dtau) const;
-
-  void setZeroMinimum();
 
   void setZero();
 
@@ -78,10 +80,15 @@ public:
 
   int dimf() const;
 
+  int dimr() const;
+
   Eigen::VectorXd lu, u_res, KKT_residual;
 
 private:
-  int dimv_, dimx_, dimf_, dimc_, dimKKT_;
+  static constexpr int kDimf = 5;
+  static constexpr int kDimr = 2;
+  static constexpr int kDimfr = kDimf + kDimr;
+  int dimv_, dimx_, dimfr_, dimf_, dimr_, dimc_, dimKKT_;
 
 };
 

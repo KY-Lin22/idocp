@@ -9,13 +9,15 @@ inline SplitDirection::SplitDirection(const Robot& robot)
   : du(robot.dimv()),
     dbeta(robot.dimv()),
     split_direction(Eigen::VectorXd::Zero(
-        5*robot.dimv()+robot.dim_passive()+7*robot.num_point_contacts())),
+        5*robot.dimv()+robot.dim_passive()+kDimfr*robot.num_point_contacts())),
     dimv_(robot.dimv()), 
     dimx_(2*robot.dimv()), 
-    num_point_contacts_(robot.num_point_contacts()),
-    dimf_verbose_(7*robot.num_point_contacts()), 
+    dimfr_(kDimfr*robot.num_point_contacts()), 
+    dimf_(kDimf*robot.num_point_contacts()), 
+    dimr_(kDimr*robot.num_point_contacts()), 
     dimc_(robot.dim_passive()),
-    dimKKT_(5*robot.dimv()+robot.dim_passive()+7*robot.num_point_contacts()) {
+    dimKKT_(
+        5*robot.dimv()+robot.dim_passive()+kDimfr*robot.num_point_contacts()) {
 }
 
 
@@ -25,8 +27,9 @@ inline SplitDirection::SplitDirection()
     split_direction(),
     dimv_(0), 
     dimx_(0), 
-    num_point_contacts_(0),
-    dimf_verbose_(0), 
+    dimfr_(0), 
+    dimf_(0), 
+    dimr_(0),
     dimc_(0),
     dimKKT_(0) {
 }
@@ -56,23 +59,33 @@ inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::da() {
 }
 
 
+inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::dfr() {
+  return split_direction.segment(dimx_+dimc_+dimv_, dimfr_);
+}
+
+
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::df() {
-  return split_direction.segment(dimx_+dimc_+dimv_, dimf_verbose_);
+  return split_direction.segment(dimx_+dimc_+dimv_, dimf_);
+}
+
+
+inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::dr() {
+  return split_direction.segment(dimx_+dimc_+dimv_+dimf_, dimr_);
 }
 
 
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::dq() {
-  return split_direction.segment(dimx_+dimc_+dimv_+dimf_verbose_, dimv_);
+  return split_direction.segment(dimx_+dimc_+dimv_+dimfr_, dimv_);
 }
 
 
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::dv() {
-  return split_direction.segment(dimx_+dimc_+2*dimv_+dimf_verbose_, dimv_);
+  return split_direction.segment(dimx_+dimc_+2*dimv_+dimfr_, dimv_);
 }
 
 
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitDirection::dx() {
-  return split_direction.segment(dimx_+dimc_+dimv_+dimf_verbose_, dimx_);
+  return split_direction.segment(dimx_+dimc_+dimv_+dimfr_, dimx_);
 }
 
 
@@ -101,26 +114,38 @@ SplitDirection::da() const {
 
 
 inline const Eigen::VectorBlock<const Eigen::VectorXd> 
+SplitDirection::dfr() const {
+  return split_direction.segment(dimx_+dimc_+dimv_, dimfr_);
+}
+
+
+inline const Eigen::VectorBlock<const Eigen::VectorXd> 
 SplitDirection::df() const {
-  return split_direction.segment(dimx_+dimc_+dimv_, dimf_verbose_);
+  return split_direction.segment(dimx_+dimc_+dimv_, dimf_);
+}
+
+
+inline const Eigen::VectorBlock<const Eigen::VectorXd> 
+SplitDirection::dr() const {
+  return split_direction.segment(dimx_+dimc_+dimv_+dimf_, dimr_);
 }
 
 
 inline const Eigen::VectorBlock<const Eigen::VectorXd> 
 SplitDirection::dq() const {
-  return split_direction.segment(dimx_+dimc_+dimv_+dimf_verbose_, dimv_);
+  return split_direction.segment(dimx_+dimc_+dimv_+dimfr_, dimv_);
 }
 
 
 inline const Eigen::VectorBlock<const Eigen::VectorXd> 
 SplitDirection::dv() const {
-  return split_direction.segment(dimx_+dimc_+2*dimv_+dimf_verbose_, dimv_);
+  return split_direction.segment(dimx_+dimc_+2*dimv_+dimfr_, dimv_);
 }
 
 
 inline const Eigen::VectorBlock<const Eigen::VectorXd> 
 SplitDirection::dx() const {
-  return split_direction.segment(dimx_+dimc_+dimv_+dimf_verbose_, dimx_);
+  return split_direction.segment(dimx_+dimc_+dimv_+dimfr_, dimx_);
 }
 
 
@@ -139,8 +164,13 @@ inline int SplitDirection::dimc() const {
 }
 
 
-inline int SplitDirection::dimf_verbose() const {
-  return dimf_verbose_;
+inline int SplitDirection::dimf() const {
+  return dimf_;
+}
+
+
+inline int SplitDirection::dimr() const {
+  return dimr_;
 }
 
 } // namespace idocp 

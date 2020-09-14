@@ -12,25 +12,29 @@ inline KKTMatrix::KKTMatrix(const Robot& robot)
     Fqq(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     Fqq_prev(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     C_(Eigen::MatrixXd::Zero(robot.dim_passive(), 
-                             3*robot.dimv()+7*robot.num_point_contacts())),
-    Q_(Eigen::MatrixXd::Zero(3*robot.dimv()+7*robot.num_point_contacts(), 
-                             3*robot.dimv()+7*robot.num_point_contacts())),
+                             3*robot.dimv()+kDimfr*robot.num_point_contacts())),
+    Q_(Eigen::MatrixXd::Zero(3*robot.dimv()+kDimfr*robot.num_point_contacts(), 
+                             3*robot.dimv()+kDimfr*robot.num_point_contacts())),
     Sc_(Eigen::MatrixXd::Zero(robot.dim_passive(), robot.dim_passive())),
     Sx_(Eigen::MatrixXd::Zero(2*robot.dimv(), 2*robot.dimv())),
-    FMinv_(Eigen::MatrixXd::Zero(2*robot.dimv(), 
-                                 3*robot.dimv()+robot.dim_passive()+7*robot.num_point_contacts())),
-    C_H_inv_(Eigen::MatrixXd::Zero(robot.dim_passive(), 
-                                   3*robot.dimv()+7*robot.num_point_contacts())),
+    FMinv_(Eigen::MatrixXd::Zero(
+        2*robot.dimv(), 
+        3*robot.dimv()+robot.dim_passive()+kDimfr*robot.num_point_contacts())),
+    C_H_inv_(Eigen::MatrixXd::Zero(
+        robot.dim_passive(), 3*robot.dimv()+kDimfr*robot.num_point_contacts())),
     has_floating_base_(robot.has_floating_base()),
     dimv_(robot.dimv()), 
     dimx_(2*robot.dimv()), 
-    dimf_(7*robot.num_point_contacts()), 
+    dimf_(kDimf*robot.num_point_contacts()), 
+    dimr_(kDimr*robot.num_point_contacts()), 
     dimc_(robot.dim_passive()),
+    dimQ_(3*robot.dimv()+kDimfr*robot.num_point_contacts()),
+    dimKKT_(5*robot.dimv()+robot.dim_passive()+kDimfr*robot.num_point_contacts()),
     a_begin_(0),
     f_begin_(robot.dimv()),
-    q_begin_(robot.dimv()+7*robot.num_point_contacts()),
-    v_begin_(2*robot.dimv()+7*robot.num_point_contacts()),
-    dimQ_(3*robot.dimv()+7*robot.num_point_contacts()) {
+    r_begin_(robot.dimv()+kDimf*robot.num_point_contacts()),
+    q_begin_(robot.dimv()+kDimfr*robot.num_point_contacts()),
+    v_begin_(2*robot.dimv()+kDimfr*robot.num_point_contacts()) {
 }
 
 
@@ -48,12 +52,15 @@ inline KKTMatrix::KKTMatrix()
     dimv_(0), 
     dimx_(0), 
     dimf_(0), 
+    dimr_(0), 
     dimc_(0),
+    dimQ_(0),
+    dimKKT_(0),
     a_begin_(0),
     f_begin_(0),
+    r_begin_(0),
     q_begin_(0),
-    v_begin_(0),
-    dimQ_(0) {
+    v_begin_(0) {
 }
 
 
@@ -71,6 +78,11 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Cf() {
 }
 
 
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Cr() {
+  return C_.block(0, r_begin_, dimc_, dimr_);
+}
+
+
 inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Cq() {
   return C_.block(0, q_begin_, dimc_, dimv_);
 }
@@ -81,12 +93,12 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Cv() {
 }
 
 
-inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Caf() {
-  return C_.block(0, a_begin_, dimc_, dimv_+dimf_);
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::C_afr() {
+  return C_.block(0, a_begin_, dimc_, dimv_+dimf_+dimr_);
 }
 
 
-inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Cqv() {
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::C_qv() {
   return C_.block(0, q_begin_, dimc_, dimx_);
 }
 
@@ -98,6 +110,11 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qaa() {
 
 inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qaf() {
   return Q_.block(a_begin_, f_begin_, dimv_, dimf_);
+}
+
+
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qar() {
+  return Q_.block(a_begin_, r_begin_, dimv_, dimr_);
 }
 
 
@@ -121,6 +138,11 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qff() {
 }
 
 
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qfr() {
+  return Q_.block(f_begin_, r_begin_, dimf_, dimr_);
+}
+
+
 inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qfq() {
   return Q_.block(f_begin_, q_begin_, dimf_, dimv_);
 }
@@ -131,6 +153,31 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qfv() {
 }
 
 
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qra() {
+  return Q_.block(r_begin_, a_begin_, dimr_, dimv_);
+}
+
+
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qrf() {
+  return Q_.block(r_begin_, f_begin_, dimr_, dimf_);
+}
+
+
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qrr() {
+  return Q_.block(r_begin_, r_begin_, dimr_, dimr_);
+}
+
+
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qrq() {
+  return Q_.block(r_begin_, q_begin_, dimr_, dimv_);
+}
+
+
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qrv() {
+  return Q_.block(r_begin_, v_begin_, dimr_, dimv_);
+}
+
+
 inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qqa() {
   return Q_.block(q_begin_, a_begin_, dimv_, dimv_);
 }
@@ -138,6 +185,11 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qqa() {
 
 inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qqf() {
   return Q_.block(q_begin_, f_begin_, dimv_, dimf_);
+}
+
+
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qqr() {
+  return Q_.block(q_begin_, r_begin_, dimv_, dimr_);
 }
 
 
@@ -161,6 +213,11 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qvf() {
 }
 
 
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qvr() {
+  return Q_.block(v_begin_, r_begin_, dimv_, dimr_);
+}
+
+
 inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qvq() {
   return Q_.block(v_begin_, q_begin_, dimv_, dimv_);
 }
@@ -171,18 +228,19 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qvv() {
 }
 
 
+
 inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qxx() {
   return Q_.block(q_begin_, q_begin_, dimx_, dimx_);
 }
 
 
-inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qafaf() {
-  return Q_.block(a_begin_, a_begin_, dimv_+dimf_, dimv_+dimf_);
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Q_afr_afr() {
+  return Q_.block(a_begin_, a_begin_, dimv_+dimf_+dimr_, dimv_+dimf_+dimr_);
 }
 
 
-inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qafqv() {
-  return Q_.block(a_begin_, q_begin_, dimv_+dimf_, 2*dimv_);
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Q_afr_qv() {
+  return Q_.block(a_begin_, q_begin_, dimv_+dimf_+dimr_, 2*dimv_);
 }
 
 
@@ -197,9 +255,8 @@ inline Eigen::MatrixXd& KKTMatrix::constraintsJacobian() {
 
 
 inline void KKTMatrix::symmetrize() {
-  Q_.topLeftCorner(dimQ_, dimQ_).triangularView<Eigen::StrictlyLower>() 
-      = Q_.topLeftCorner(dimQ_, dimQ_).transpose()
-          .triangularView<Eigen::StrictlyLower>();
+  Q_.triangularView<Eigen::StrictlyLower>() 
+      = Q_.transpose().triangularView<Eigen::StrictlyLower>();
 }
 
 
@@ -278,19 +335,31 @@ inline void KKTMatrix::invert(
 }
 
 
-inline void KKTMatrix::setZeroMinimum() {
-  Quu.setZero();
-  Fqq.topLeftCorner<kDimFloatingBase, kDimFloatingBase>().setZero();
-  C_.topLeftCorner(dimc_, dimQ_).setZero();
-  Q_.topLeftCorner(dimQ_, dimQ_).triangularView<Eigen::Upper>().setZero();
-}
-
-
 inline void KKTMatrix::setZero() {
   Quu.setZero();
   Fqq.setZero();
   C_.setZero();
   Q_.setZero();
+}
+
+
+inline int KKTMatrix::dimKKT() const {
+  return dimKKT_;
+}
+
+
+inline int KKTMatrix::dimc() const {
+  return dimc_;
+}
+
+
+inline int KKTMatrix::dimf() const {
+  return dimf_;
+}
+
+
+inline int KKTMatrix::dimr() const {
+  return dimr_;
 }
 
 
@@ -302,34 +371,26 @@ inline void KKTMatrix::invertConstrainedHessian(
   if (dimc_ > 0) {
     const_cast<Eigen::MatrixBase<MatrixType>&>(H_inv)
         .bottomRightCorner(dimQ_, dimQ_).noalias()
-        = Q_.topLeftCorner(dimQ_, dimQ_)
-            .llt().solve(Eigen::MatrixXd::Identity(dimQ_, dimQ_));
-    C_H_inv_.topLeftCorner(dimc_, dimQ_).noalias()
-        = C_.topLeftCorner(dimc_, dimQ_) * H_inv.bottomRightCorner(dimQ_, dimQ_);
-    Sc_.topLeftCorner(dimc_, dimc_).noalias() 
-        = C_H_inv_.topLeftCorner(dimc_, dimQ_)
-            * C_.topLeftCorner(dimc_, dimQ_).transpose();
+        = Q_.llt().solve(Eigen::MatrixXd::Identity(dimQ_, dimQ_));
+    C_H_inv_.noalias() = C_ * H_inv.bottomRightCorner(dimQ_, dimQ_);
+    Sc_.noalias() = C_H_inv_ * C_.transpose();
     const_cast<Eigen::MatrixBase<MatrixType>&>(H_inv)
         .topLeftCorner(dimc_, dimc_).noalias()
-        = - Sc_.topLeftCorner(dimc_, dimc_)
-                .llt().solve(Eigen::MatrixXd::Identity(dimc_, dimc_));
+        = - Sc_.llt().solve(Eigen::MatrixXd::Identity(dimc_, dimc_));
     const_cast<Eigen::MatrixBase<MatrixType>&>(H_inv)
         .topRightCorner(dimc_, dimQ_).noalias()
-        = - H_inv.topLeftCorner(dimc_, dimc_) 
-            * C_H_inv_.topLeftCorner(dimc_, dimQ_);
+        = - H_inv.topLeftCorner(dimc_, dimc_) * C_H_inv_;
     const_cast<Eigen::MatrixBase<MatrixType>&>(H_inv)
         .bottomLeftCorner(dimQ_, dimc_)
         = H_inv.topRightCorner(dimc_, dimQ_).transpose();
     const_cast<Eigen::MatrixBase<MatrixType>&>(H_inv)
         .bottomRightCorner(dimQ_, dimQ_).noalias()
         -= H_inv.topRightCorner(dimc_, dimQ_).transpose()
-              * Sc_.topLeftCorner(dimc_, dimc_)
-              * H_inv.topRightCorner(dimc_, dimQ_);
+              * Sc_ * H_inv.topRightCorner(dimc_, dimQ_);
   }
   else {
     const_cast<Eigen::MatrixBase<MatrixType>&>(H_inv).noalias()
-        = Q_.topLeftCorner(dimQ_, dimQ_)
-            .llt().solve(Eigen::MatrixXd::Identity(dimQ_, dimQ_));
+        = Q_.llt().solve(Eigen::MatrixXd::Identity(dimQ_, dimQ_));
   }
 }
 

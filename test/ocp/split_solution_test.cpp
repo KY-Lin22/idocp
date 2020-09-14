@@ -30,12 +30,24 @@ protected:
 TEST_F(SplitSolutionTest, fixed_base) {
   Robot robot(fixed_base_urdf_);
   SplitSolution s(robot);
+  EXPECT_EQ(s.lmd.size(), 7);
+  EXPECT_EQ(s.gmm.size(), 7);
+  EXPECT_EQ(s.mu.size(), 0);
+  EXPECT_EQ(s.a.size(), 7);
+  EXPECT_EQ(s.f.size(), 0);
+  EXPECT_EQ(s.f_3D.size(), 0);
+  EXPECT_EQ(s.r.size(), 0);
+  EXPECT_EQ(s.q.size(), 7);
+  EXPECT_EQ(s.v.size(), 7);
+  EXPECT_EQ(s.u.size(), 7);
+  EXPECT_EQ(s.beta.size(), 7);
   const Eigen::VectorXd lmd = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd gmm = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd mu = Eigen::VectorXd::Random(robot.dim_passive());
   const Eigen::VectorXd a = Eigen::VectorXd::Random(robot.dimv());
-  const Eigen::VectorXd f = Eigen::VectorXd::Random(robot.dimf());
-  const Eigen::VectorXd f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  const Eigen::VectorXd f = Eigen::VectorXd::Random(0);
+  const Eigen::VectorXd f_3D = Eigen::VectorXd::Random(0);
+  const Eigen::VectorXd r = Eigen::VectorXd::Random(0);
   const Eigen::VectorXd q = Eigen::VectorXd::Random(robot.dimq());
   const Eigen::VectorXd v = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd u = Eigen::VectorXd::Random(robot.dimv());
@@ -45,6 +57,8 @@ TEST_F(SplitSolutionTest, fixed_base) {
   s.mu = mu;
   s.a = a;
   s.f = f;
+  s.f_3D = f_3D;
+  s.r = r;
   s.q = q;
   s.v = v;
   s.u = u;
@@ -58,9 +72,6 @@ TEST_F(SplitSolutionTest, fixed_base) {
   EXPECT_TRUE(s.v.isApprox(v));
   EXPECT_TRUE(s.u.isApprox(u));
   EXPECT_TRUE(s.beta.isApprox(beta));
-  EXPECT_EQ(s.mu.size(), 0);
-  EXPECT_EQ(s.f.size(), 0);
-  EXPECT_EQ(s.f_verbose.size(), 0);
 }
 
 
@@ -68,12 +79,24 @@ TEST_F(SplitSolutionTest, fixed_base_contact) {
   std::vector<int> contact_frames = {18};
   Robot robot(fixed_base_urdf_, contact_frames, 0, 0);
   SplitSolution s(robot);
+  EXPECT_EQ(s.lmd.size(), 7);
+  EXPECT_EQ(s.gmm.size(), 7);
+  EXPECT_EQ(s.mu.size(), 0);
+  EXPECT_EQ(s.a.size(), 7);
+  EXPECT_EQ(s.f.size(), 5);
+  EXPECT_EQ(s.f_3D.size(), 3);
+  EXPECT_EQ(s.r.size(), 2);
+  EXPECT_EQ(s.q.size(), 7);
+  EXPECT_EQ(s.v.size(), 7);
+  EXPECT_EQ(s.u.size(), 7);
+  EXPECT_EQ(s.beta.size(), 7);
   const Eigen::VectorXd lmd = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd gmm = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd mu = Eigen::VectorXd::Random(robot.dim_passive());
   const Eigen::VectorXd a = Eigen::VectorXd::Random(robot.dimv());
-  const Eigen::VectorXd f = Eigen::VectorXd::Random(robot.dimf());
-  const Eigen::VectorXd f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  const Eigen::VectorXd f = Eigen::VectorXd::Random(5);
+  const Eigen::VectorXd f_3D = Eigen::VectorXd::Random(3);
+  const Eigen::VectorXd r = Eigen::VectorXd::Random(2);
   const Eigen::VectorXd q = Eigen::VectorXd::Random(robot.dimq());
   const Eigen::VectorXd v = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd u = Eigen::VectorXd::Random(robot.dimv());
@@ -83,6 +106,8 @@ TEST_F(SplitSolutionTest, fixed_base_contact) {
   s.mu = mu;
   s.a = a;
   s.f = f;
+  s.f_3D = f_3D;
+  s.r = r;
   s.q = q;
   s.v = v;
   s.u = u;
@@ -96,15 +121,12 @@ TEST_F(SplitSolutionTest, fixed_base_contact) {
   EXPECT_TRUE(s.v.isApprox(v));
   EXPECT_TRUE(s.u.isApprox(u));
   EXPECT_TRUE(s.beta.isApprox(beta));
-  EXPECT_EQ(s.mu.size(), 0);
-  EXPECT_EQ(s.f.size(), 3);
-  EXPECT_EQ(s.f_verbose.size(), 7);
-  s.set_f();
-  Eigen::VectorXd f_ref = Eigen::VectorXd::Zero(robot.dimf());
-  f_ref(0) = s.f_verbose(0) - s.f_verbose(1);
-  f_ref(1) = s.f_verbose(2) - s.f_verbose(3);
-  f_ref(2) = s.f_verbose(4);
-  EXPECT_TRUE(s.f.isApprox(f_ref));
+  s.set_f_3D();
+  Eigen::VectorXd f_3D_ref = Eigen::VectorXd::Zero(robot.dimf());
+  f_3D_ref(0) = s.f(0) - s.f(1);
+  f_3D_ref(1) = s.f(2) - s.f(3);
+  f_3D_ref(2) = s.f(4);
+  EXPECT_TRUE(s.f_3D.isApprox(f_3D_ref));
 }
 
 
@@ -112,12 +134,24 @@ TEST_F(SplitSolutionTest, floating_base) {
   std::vector<int> contact_frames = {14, 24, 34, 44};
   Robot robot(floating_base_urdf_, contact_frames, 0, 0);
   SplitSolution s(robot);
+  EXPECT_EQ(s.lmd.size(), 18);
+  EXPECT_EQ(s.gmm.size(), 18);
+  EXPECT_EQ(s.mu.size(), 6);
+  EXPECT_EQ(s.a.size(), 18);
+  EXPECT_EQ(s.f.size(), 20);
+  EXPECT_EQ(s.f_3D.size(), 12);
+  EXPECT_EQ(s.r.size(), 8);
+  EXPECT_EQ(s.q.size(), 19);
+  EXPECT_EQ(s.v.size(), 18);
+  EXPECT_EQ(s.u.size(), 18);
+  EXPECT_EQ(s.beta.size(), 18);
   const Eigen::VectorXd lmd = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd gmm = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd mu = Eigen::VectorXd::Random(robot.dim_passive());
   const Eigen::VectorXd a = Eigen::VectorXd::Random(robot.dimv());
-  const Eigen::VectorXd f = Eigen::VectorXd::Random(robot.dimf());
-  const Eigen::VectorXd f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  const Eigen::VectorXd f = Eigen::VectorXd::Random(20);
+  const Eigen::VectorXd f_3D = Eigen::VectorXd::Random(12);
+  const Eigen::VectorXd r = Eigen::VectorXd::Random(8);
   const Eigen::VectorXd q = Eigen::VectorXd::Random(robot.dimq());
   const Eigen::VectorXd v = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd u = Eigen::VectorXd::Random(robot.dimv());
@@ -127,6 +161,8 @@ TEST_F(SplitSolutionTest, floating_base) {
   s.mu = mu;
   s.a = a;
   s.f = f;
+  s.f_3D = f_3D;
+  s.r = r;
   s.q = q;
   s.v = v;
   s.u = u;
@@ -140,17 +176,14 @@ TEST_F(SplitSolutionTest, floating_base) {
   EXPECT_TRUE(s.v.isApprox(v));
   EXPECT_TRUE(s.u.isApprox(u));
   EXPECT_TRUE(s.beta.isApprox(beta));
-  EXPECT_EQ(s.mu.size(), 6);
-  EXPECT_EQ(s.f.size(), 3*contact_frames.size());
-  EXPECT_EQ(s.f_verbose.size(), 7*contact_frames.size());
-  s.set_f();
-  Eigen::VectorXd f_ref = Eigen::VectorXd::Zero(robot.dimf());
+  s.set_f_3D();
+  Eigen::VectorXd f_3D_ref = Eigen::VectorXd::Zero(robot.dimf());
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    f_ref(3*i  ) = s.f_verbose(7*i  ) - s.f_verbose(7*i+1);
-    f_ref(3*i+1) = s.f_verbose(7*i+2) - s.f_verbose(7*i+3);
-    f_ref(3*i+2) = s.f_verbose(7*i+4);
+    f_3D_ref(3*i  ) = s.f(5*i  ) - s.f(5*i+1);
+    f_3D_ref(3*i+1) = s.f(5*i+2) - s.f(5*i+3);
+    f_3D_ref(3*i+2) = s.f(5*i+4);
   }
-  EXPECT_TRUE(s.f.isApprox(f_ref));
+  EXPECT_TRUE(s.f_3D.isApprox(f_3D_ref));
 }
 
 } // namespace idocp

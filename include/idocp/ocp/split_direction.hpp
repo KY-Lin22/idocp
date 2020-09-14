@@ -34,7 +34,11 @@ public:
 
   Eigen::VectorBlock<Eigen::VectorXd> da();
 
+  Eigen::VectorBlock<Eigen::VectorXd> dfr();
+
   Eigen::VectorBlock<Eigen::VectorXd> df();
+
+  Eigen::VectorBlock<Eigen::VectorXd> dr();
 
   Eigen::VectorBlock<Eigen::VectorXd> dq();
 
@@ -50,7 +54,11 @@ public:
 
   const Eigen::VectorBlock<const Eigen::VectorXd> da() const;
 
+  const Eigen::VectorBlock<const Eigen::VectorXd> dfr() const;
+
   const Eigen::VectorBlock<const Eigen::VectorXd> df() const;
+
+  const Eigen::VectorBlock<const Eigen::VectorXd> dr() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> dq() const;
 
@@ -64,13 +72,18 @@ public:
 
   int dimc() const;
 
-  int dimf_verbose() const;
+  int dimf() const;
+
+  int dimr() const;
 
   // condensed directions
   Eigen::VectorXd du, dbeta, split_direction;
 
 private:
-  int dimv_, dimx_, num_point_contacts_, dimf_verbose_, dimc_, dimKKT_;
+  static constexpr int kDimf = 5;
+  static constexpr int kDimr = 2;
+  static constexpr int kDimfr = kDimf + kDimr;
+  int dimv_, dimx_, dimfr_, dimf_, dimr_, dimc_, dimKKT_;
 
 };
 

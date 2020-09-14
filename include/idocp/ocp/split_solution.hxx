@@ -1,6 +1,8 @@
 #ifndef IDOCP_SPLIT_SOLUTION_HXX_
 #define IDOCP_SPLIT_SOLUTION_HXX_
 
+#include "idocp/ocp/split_solution.hpp"
+
 namespace idocp {
 
 inline SplitSolution::SplitSolution(const Robot& robot) 
@@ -8,8 +10,9 @@ inline SplitSolution::SplitSolution(const Robot& robot)
     gmm(Eigen::VectorXd::Zero(robot.dimv())),
     mu(Eigen::VectorXd::Zero(robot.dim_passive())),
     a(Eigen::VectorXd::Zero(robot.dimv())),
-    f(Eigen::VectorXd::Zero(3*robot.num_point_contacts())),
-    f_verbose(Eigen::VectorXd::Zero(7*robot.num_point_contacts())),
+    f_3D(Eigen::VectorXd::Zero(kDimf_3D*robot.num_point_contacts())),
+    f(Eigen::VectorXd::Zero(kDimf*robot.num_point_contacts())),
+    r(Eigen::VectorXd::Zero(kDimr*robot.num_point_contacts())),
     q(Eigen::VectorXd::Zero(robot.dimq())),
     v(Eigen::VectorXd::Zero(robot.dimv())),
     u(Eigen::VectorXd::Zero(robot.dimv())),
@@ -24,8 +27,9 @@ inline SplitSolution::SplitSolution()
     gmm(),
     mu(),
     a(),
+    f_3D(),
     f(),
-    f_verbose(),
+    r(),
     q(),
     v(),
     u(),
@@ -38,11 +42,11 @@ inline SplitSolution::~SplitSolution() {
 }
 
 
-inline void SplitSolution::set_f() {
+inline void SplitSolution::set_f_3D() {
   for (int i=0; i<num_point_contacts_; ++i) {
-    f.coeffRef(i*3  ) = f_verbose.coeff(i*7  ) - f_verbose.coeff(i*7+1);
-    f.coeffRef(i*3+1) = f_verbose.coeff(i*7+2) - f_verbose.coeff(i*7+3);
-    f.coeffRef(i*3+2) = f_verbose.coeff(i*7+4);
+    f_3D.coeffRef(kDimf_3D*i  ) = f.coeff(kDimf*i  ) - f.coeff(kDimf*i+1);
+    f_3D.coeffRef(kDimf_3D*i+1) = f.coeff(kDimf*i+2) - f.coeff(kDimf*i+3);
+    f_3D.coeffRef(kDimf_3D*i+2) = f.coeff(kDimf*i+4);
   }
 }
 
