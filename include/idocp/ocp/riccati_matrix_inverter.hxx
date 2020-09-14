@@ -9,15 +9,16 @@ namespace idocp {
 
 inline RiccatiMatrixInverter::RiccatiMatrixInverter(const Robot& robot) 
   : dimv_(robot.dimv()),
-    dimf_(robot.dimf()),
-    dimc_(robot.dim_passive()+robot.dimf()),
-    dimaf_(robot.dimv()+robot.dimf()),
-    G_inv_(Eigen::MatrixXd::Zero(robot.dimv()+2*robot.max_dimf()+robot.dim_passive(), 
-                                 robot.dimv()+2*robot.max_dimf()+robot.dim_passive())),
-    Sc_(Eigen::MatrixXd::Zero(robot.max_dimf()+robot.dim_passive(), 
-                              robot.max_dimf()+robot.dim_passive())),
-    G_inv_Caf_trans_(Eigen::MatrixXd::Zero(robot.dimv()+robot.max_dimf(), 
-                                           robot.max_dimf()+robot.dim_passive())) {
+    dimf_(7*robot.num_point_contacts()),
+    dimc_(robot.dim_passive()),
+    dimaf_(robot.dimv()+7*robot.num_point_contacts()),
+    G_inv_(Eigen::MatrixXd::Zero(
+        robot.dimv()+7*robot.num_point_contacts()+robot.dim_passive(), 
+        robot.dimv()+7*robot.num_point_contacts()+robot.dim_passive())),
+    Sc_(Eigen::MatrixXd::Zero(robot.dim_passive(), 
+                              robot.dim_passive())),
+    G_inv_Caf_trans_(Eigen::MatrixXd::Zero(
+        robot.dimv()+7*robot.num_point_contacts(), robot.dim_passive())) {
 }
 
 
@@ -33,13 +34,6 @@ inline RiccatiMatrixInverter::RiccatiMatrixInverter()
 
 
 inline RiccatiMatrixInverter::~RiccatiMatrixInverter() {
-}
-
-
-inline void RiccatiMatrixInverter::setContactStatus(const Robot& robot) {
-  dimf_ = robot.dimf();
-  dimaf_ = robot.dimv() + robot.dimf();
-  dimc_ = robot.dim_passive() + robot.dimf();
 }
 
 

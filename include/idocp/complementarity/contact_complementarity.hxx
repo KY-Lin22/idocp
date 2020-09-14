@@ -23,7 +23,9 @@ inline ContactComplementarity::ContactComplementarity(
     g_w_(Eigen::VectorXd::Zero(dimc_)), 
     g_ss_(Eigen::VectorXd::Zero(dimc_)), 
     g_st_(Eigen::VectorXd::Zero(dimc_)), 
-    g_tt_(Eigen::VectorXd::Zero(dimc_)) {
+    g_tt_(Eigen::VectorXd::Zero(dimc_)),
+    condensed_force_residual_(Eigen::VectorXd::Zero(dimc_)),
+    condensed_baumgarte_residual_(Eigen::VectorXd::Zero(dimc_)) {
 }
 
 
@@ -42,7 +44,9 @@ inline ContactComplementarity::ContactComplementarity()
     g_w_(), 
     g_ss_(), 
     g_st_(), 
-    g_tt_() {
+    g_tt_(),
+    condensed_force_residual_(),
+    condensed_baumgarte_residual_() {
 }
 
 
@@ -123,8 +127,10 @@ inline void ContactComplementarity::augmentDualResidual(
     Robot& robot, const double dtau, const SplitSolution& s, 
     KKTResidual& kkt_residual) {
   assert(dtau > 0);
-  contact_force_inequality_.augmentDualResidual(robot, dtau, s, force_data_, kkt_residual);
-  baumgarte_inequality_.augmentDualResidual(robot, dtau, s, baumgarte_data_, kkt_residual);
+  contact_force_inequality_.augmentDualResidual(robot, dtau, s, force_data_, 
+                                                kkt_residual);
+  baumgarte_inequality_.augmentDualResidual(robot, dtau, s, baumgarte_data_, 
+                                            kkt_residual);
 }
 
 
@@ -132,33 +138,53 @@ inline void ContactComplementarity::condenseSlackAndDual(
     Robot& robot, const double dtau, const SplitSolution& s, 
     KKTMatrix& kkt_matrix, KKTResidual& kkt_residual) {
   assert(dtau > 0);
-  s_g_.array() = (force_data_.dual.array()+baumgarte_data_.slack.array()*complementarity_data_.dual.array()) / force_data_.slack.array();
-  s_h_.array() = (baumgarte_data_.dual.array()+force_data_.slack.array()*complementarity_data_.dual.array()) / baumgarte_data_.slack.array();
-  g_w_.array() = complementarity_data_.dual.array() / complementarity_data_.slack.array();
-  g_ss_.array() = force_data_.slack.array() * g_w_.array() * force_data_.slack.array();
-  g_st_.array() = force_data_.slack.array() * g_w_.array() * baumgarte_data_.slack.array();
-  g_tt_.array() = baumgarte_data_.slack.array() * g_w_.array() * baumgarte_data_.slack.array();
+  s_g_.array() 
+      = (force_data_.dual.array()
+          + baumgarte_data_.slack.array()*complementarity_data_.dual.array()) 
+        / force_data_.slack.array();
+  s_h_.array() 
+      = (baumgarte_data_.dual.array()
+          + force_data_.slack.array()*complementarity_data_.dual.array()) 
+        / baumgarte_data_.slack.array();
+  g_w_.array() 
+      = complementarity_data_.dual.array() / complementarity_data_.slack.array();
+  g_ss_.array() 
+      = force_data_.slack.array() * g_w_.array() * force_data_.slack.array();
+  g_st_.array() 
+      = force_data_.slack.array() * g_w_.array() * baumgarte_data_.slack.array();
+  g_tt_.array() 
+      = baumgarte_data_.slack.array() * g_w_.array() * baumgarte_data_.slack.array();
   g_ss_.noalias() += s_h_;
   g_st_.noalias() += complementarity_data_.dual;
   g_tt_.noalias() += s_g_;
-  contact_force_inequality_.augmentCondensedHessian(robot, dtau, s, g_tt_, kkt_matrix);
-  baumgarte_inequality_.augmentCondensedHessian(robot, dtau, s, g_ss_, kkt_matrix);
+  contact_force_inequality_.augmentCondensedHessian(robot, dtau, s, g_tt_, 
+                                                    kkt_matrix);
+  baumgarte_inequality_.augmentCondensedHessian(robot, dtau, s, g_ss_, 
+                                                kkt_matrix);
   baumgarte_inequality_.augmentComplementarityCondensedHessian(
       robot, dtau, s, contact_force_inequality_, g_st_, kkt_matrix);
   condensed_force_residual_.array() 
       = g_tt_.array() * force_data_.residual.array() 
          + g_st_.array() * baumgarte_data_.residual.array()
-         + baumgarte_data_.slack.array() * g_w_.array() * baumgarte_data_.residual.array()
-         + baumgarte_data_.slack.array() * complementarity_data_.slack.array() / baumgarte_data_.slack.array()
+         - baumgarte_data_.slack.array() * g_w_.array() 
+                                         * complementarity_data_.residual.array()
+         + baumgarte_data_.slack.array() * complementarity_data_.duality.array() 
+                                         / complementarity_data_.slack.array();
          - force_data_.duality.array() / force_data_.slack.array();
-  condensed_force_residual_.array() 
-      = g_tt_.array() * force_data_.residual.array() 
-         + g_st_.array() * baumgarte_data_.residual.array()
-         + baumgarte_data_.slack.array() * g_w_.array() * baumgarte_data_.residual.array()
-         + baumgarte_data_.slack.array() * complementarity_data_.slack.array() / baumgarte_data_.slack.array()
-         - force_data_.duality.array() / force_data_.slack.array();
-  contact_force_inequality_.augmentCondensedResidual(robot, dtau, s, g_tt_, kkt_residual);
-  baumgarte_inequality_.augmentCondensedResidual(robot, dtau, s, g_ss_, kkt_residual);
+  condensed_baumgarte_residual_.array() 
+      = g_st_.array() * force_data_.residual.array() 
+         + g_ss_.array() * baumgarte_data_.residual.array()
+         - force_data_.slack.array() * g_w_.array() 
+                                     * complementarity_data_.residual.array()
+         + force_data_.slack.array() * complementarity_data_.duality.array() 
+                                     / complementarity_data_.slack.array()
+         - baumgarte_data_.duality.array() / baumgarte_data_.slack.array();
+  contact_force_inequality_.augmentCondensedResidual(robot, dtau, s, 
+                                                     condensed_force_residual_, 
+                                                     kkt_residual);
+  baumgarte_inequality_.augmentCondensedResidual(robot, dtau, s, 
+                                                 condensed_baumgarte_residual_, 
+                                                 kkt_residual);
 }
 
 
@@ -188,22 +214,41 @@ inline void ContactComplementarity::computeSlackAndDualDirection(
 }
 
 
-inline double ContactComplementarity::residualL1Nrom(
-    const Robot& robot, const double dtau, const SplitSolution& s) const {
+inline double ContactComplementarity::residualL1Nrom() const {
   double error = 0;
-  // error += data.residual.squaredNorm();
-  // error += data.duality.squaredNorm();
+  error += force_data_.residual.template lpNorm<1>();
+  error += force_data_.duality.template lpNorm<1>();
+  error += baumgarte_data_.residual.template lpNorm<1>();
+  error += baumgarte_data_.duality.template lpNorm<1>();
+  error += complementarity_data_.residual.template lpNorm<1>();
+  error += complementarity_data_.duality.template lpNorm<1>();
   return error;
-  // return data.residual.lpNorm<1>();
 }
 
 
-inline double ContactComplementarity::squaredKKTErrorNorm(
-    Robot& robot, const double dtau, const SplitSolution& s) const {
+inline double ContactComplementarity::computeResidualL1Nrom(
+    Robot& robot, const double dtau, const SplitSolution& s) {
+  computeResidual(robot, dtau, s);
+  return residualL1Nrom();
+}
+
+
+inline double ContactComplementarity::squaredKKTErrorNorm() const {
   double error = 0;
-  // error += data.residual.squaredNorm();
-  // error += data.duality.squaredNorm();
+  error += force_data_.residual.squaredNorm();
+  error += force_data_.duality.squaredNorm();
+  error += baumgarte_data_.residual.squaredNorm();
+  error += baumgarte_data_.duality.squaredNorm();
+  error += complementarity_data_.residual.squaredNorm();
+  error += complementarity_data_.duality.squaredNorm();
   return error;
+}
+
+
+inline double ContactComplementarity::computeSquaredKKTErrorNorm(
+    Robot& robot, const double dtau, const SplitSolution& s) { 
+  computeResidual(robot, dtau, s);
+  return squaredKKTErrorNorm();
 }
 
 } // namespace idocp

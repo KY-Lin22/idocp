@@ -46,13 +46,13 @@ TEST_F(KKTResidualTest, fixed_base) {
   residual.lf() = Qf_res;
   residual.lq() = Qq_res;
   residual.lv() = Qv_res;
-  EXPECT_TRUE(residual.KKT_residual().segment(0, dimv).isApprox(Fq_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(dimv, dimv).isApprox(Fv_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(2*dimv, dimc).isApprox(C_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(2*dimv+dimc, dimv).isApprox(Qa_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(3*dimv+dimc, dimf).isApprox(Qf_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(3*dimv+dimc+dimf, dimv).isApprox(Qq_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(4*dimv+dimc+dimf, dimv).isApprox(Qv_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(0, dimv).isApprox(Fq_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(dimv, dimv).isApprox(Fv_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(2*dimv, dimc).isApprox(C_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(2*dimv+dimc, dimv).isApprox(Qa_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(3*dimv+dimc, dimf).isApprox(Qf_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(3*dimv+dimc+dimf, dimv).isApprox(Qq_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(4*dimv+dimc+dimf, dimv).isApprox(Qv_res));
   EXPECT_TRUE(residual.lx().head(dimv).isApprox(Qq_res));
   EXPECT_TRUE(residual.lx().tail(dimv).isApprox(Qv_res));
   EXPECT_EQ(residual.lx().size(), 2*dimv);
@@ -60,7 +60,7 @@ TEST_F(KKTResidualTest, fixed_base) {
   EXPECT_TRUE(residual.laf().tail(dimf).isApprox(Qf_res));
   EXPECT_EQ(residual.laf().size(), dimv+dimf);
   residual.setZero();
-  EXPECT_TRUE(residual.KKT_residual().isZero());
+  EXPECT_TRUE(residual.KKT_residual.isZero());
   EXPECT_EQ(residual.dimKKT(), 5*dimv+dimc+dimf);
 }
 
@@ -87,13 +87,13 @@ TEST_F(KKTResidualTest, fixed_base_contact) {
   residual.lf() = Qf_res;
   residual.lq() = Qq_res;
   residual.lv() = Qv_res;
-  EXPECT_TRUE(residual.KKT_residual().segment(0, dimv).isApprox(Fq_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(dimv, dimv).isApprox(Fv_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(2*dimv, dimc).isApprox(C_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(2*dimv+dimc, dimv).isApprox(Qa_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(3*dimv+dimc, dimf).isApprox(Qf_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(3*dimv+dimc+dimf, dimv).isApprox(Qq_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(4*dimv+dimc+dimf, dimv).isApprox(Qv_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(0, dimv).isApprox(Fq_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(dimv, dimv).isApprox(Fv_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(2*dimv, dimc).isApprox(C_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(2*dimv+dimc, dimv).isApprox(Qa_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(3*dimv+dimc, dimf).isApprox(Qf_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(3*dimv+dimc+dimf, dimv).isApprox(Qq_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(4*dimv+dimc+dimf, dimv).isApprox(Qv_res));
   EXPECT_TRUE(residual.lx().head(dimv).isApprox(Qq_res));
   EXPECT_TRUE(residual.lx().tail(dimv).isApprox(Qv_res));
   EXPECT_EQ(residual.lx().size(), 2*dimv);
@@ -101,7 +101,7 @@ TEST_F(KKTResidualTest, fixed_base_contact) {
   EXPECT_TRUE(residual.laf().tail(dimf).isApprox(Qf_res));
   EXPECT_EQ(residual.laf().size(), dimv+dimf);
   residual.setZero();
-  EXPECT_TRUE(residual.KKT_residual().isZero());
+  EXPECT_TRUE(residual.KKT_residual.isZero());
   EXPECT_EQ(residual.dimKKT(), 5*dimv+dimc+dimf);
 }
 
@@ -129,13 +129,13 @@ TEST_F(KKTResidualTest, floating_base) {
   residual.lf() = Qf_res;
   residual.lq() = Qq_res;
   residual.lv() = Qv_res;
-  EXPECT_TRUE(residual.KKT_residual().segment(0, dimv).isApprox(Fq_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(dimv, dimv).isApprox(Fv_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(2*dimv, dimc).isApprox(C_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(2*dimv+dimc, dimv).isApprox(Qa_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(3*dimv+dimc, dimf).isApprox(Qf_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(3*dimv+dimc+dimf, dimv).isApprox(Qq_res));
-  EXPECT_TRUE(residual.KKT_residual().segment(4*dimv+dimc+dimf, dimv).isApprox(Qv_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(0, dimv).isApprox(Fq_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(dimv, dimv).isApprox(Fv_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(2*dimv, dimc).isApprox(C_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(2*dimv+dimc, dimv).isApprox(Qa_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(3*dimv+dimc, dimf).isApprox(Qf_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(3*dimv+dimc+dimf, dimv).isApprox(Qq_res));
+  EXPECT_TRUE(residual.KKT_residual.segment(4*dimv+dimc+dimf, dimv).isApprox(Qv_res));
   EXPECT_TRUE(residual.lx().head(dimv).isApprox(Qq_res));
   EXPECT_TRUE(residual.lx().tail(dimv).isApprox(Qv_res));
   EXPECT_EQ(residual.lx().size(), 2*dimv);
@@ -143,7 +143,7 @@ TEST_F(KKTResidualTest, floating_base) {
   EXPECT_TRUE(residual.laf().tail(dimf).isApprox(Qf_res));
   EXPECT_EQ(residual.laf().size(), dimv+dimf);
   residual.setZero();
-  EXPECT_TRUE(residual.KKT_residual().isZero());
+  EXPECT_TRUE(residual.KKT_residual.isZero());
   EXPECT_EQ(residual.dimKKT(), 5*dimv+dimc+dimf);
 }
 

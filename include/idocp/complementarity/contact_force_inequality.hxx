@@ -34,15 +34,15 @@ inline ContactForceInequality::~ContactForceInequality() {
 inline bool ContactForceInequality::isFeasible(const Robot& robot, 
                                                const SplitSolution& s) {
   for (int i=0; i<robot.num_point_contacts(); ++i) {
+    assert(s.f.coeff(3*i  ) == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
+    assert(s.f.coeff(3*i+1) == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
+    assert(s.f.coeff(3*i+2) == s.f_verbose(kDimf_verbose*i+4));
     if (s.f_verbose.segment<kDimf>(kDimf_verbose*i).minCoeff() < 0) {
       return false;
     }
     const double fx = s.f.coeff(3*i  );
     const double fy = s.f.coeff(3*i+1);
     const double fz = s.f.coeff(3*i+2);
-    assert(fx == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
-    assert(fy == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
-    assert(fz == s.f_verbose(kDimf_verbose*i+4));
     const double friction_res = mu_*mu_*fz*fz - fx*fx - fy*fy;
     if (friction_res < 0) {
       return false;
@@ -58,13 +58,14 @@ inline void ContactForceInequality::setSlack(const Robot& robot,
                                              ConstraintComponentData& data) {
   assert(dtau > 0);
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    data.slack.segment<kDimf>(kDimc*i) = dtau * s.f_verbose.segment<kDimf>(kDimf_verbose*i);
+    assert(s.f.coeff(3*i  ) == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
+    assert(s.f.coeff(3*i+1) == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
+    assert(s.f.coeff(3*i+2) == s.f_verbose(kDimf_verbose*i+4));
+    data.slack.segment<kDimf>(kDimc*i) 
+        = dtau * s.f_verbose.segment<kDimf>(kDimf_verbose*i);
     const double fx = s.f.coeff(kDimb*i  );
     const double fy = s.f.coeff(kDimb*i+1);
     const double fz = s.f.coeff(kDimb*i+2);
-    assert(fx == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
-    assert(fy == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
-    assert(fz == s.f_verbose(kDimf_verbose*i+4));
     data.slack.coeffRef(kDimc*i+kDimf) = dtau * (mu_*mu_*fz*fz-fx*fx-fy*fy);
   }
   pdipmfunc::SetSlackAndDualPositive(barrier_, data.slack, data.dual);
@@ -77,7 +78,11 @@ inline void ContactForceInequality::computePrimalResidual(
   assert(dtau > 0);
   data.residual = data.slack;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    data.residual.segment<kDimf>(kDimc*i).noalias() -= dtau * s.f_verbose.segment<kDimf>(kDimf_verbose*i);
+    assert(s.f.coeff(3*i  ) == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
+    assert(s.f.coeff(3*i+1) == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
+    assert(s.f.coeff(3*i+2) == s.f_verbose(kDimf_verbose*i+4));
+    data.residual.segment<kDimf>(kDimc*i).noalias() 
+        -= dtau * s.f_verbose.segment<kDimf>(kDimf_verbose*i);
     const double fx = s.f.coeff(kDimb*i  );
     const double fy = s.f.coeff(kDimb*i+1);
     const double fz = s.f.coeff(kDimb*i+2);
@@ -95,19 +100,25 @@ inline void ContactForceInequality::augmentDualResidual(
     const ConstraintComponentData& data, KKTResidual& kkt_residual) {
   assert(dtau > 0);
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    kkt_residual.lf().segment<kDimf>(kDimf_verbose*i).noalias() -= dtau * data.dual.segment<kDimf>(i*kDimc);
+    assert(s.f.coeff(3*i  ) == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
+    assert(s.f.coeff(3*i+1) == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
+    assert(s.f.coeff(3*i+2) == s.f_verbose(kDimf_verbose*i+4));
+    kkt_residual.lf().segment<kDimf>(kDimf_verbose*i).noalias() 
+        -= dtau * data.dual.segment<kDimf>(i*kDimc);
     const double fx = s.f.coeff(kDimb*i  );
     const double fy = s.f.coeff(kDimb*i+1);
     const double fz = s.f.coeff(kDimb*i+2);
-    assert(fx == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
-    assert(fy == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
-    assert(fz == s.f_verbose(kDimf_verbose*i+4));
     const double friction_cone_dual = data.dual.coeff(kDimc*i+kDimf);
-    kkt_residual.lf().coeffRef(kDimf_verbose*i  ) += 2 * dtau * fx * friction_cone_dual;
-    kkt_residual.lf().coeffRef(kDimf_verbose*i+1) -= 2 * dtau * fx * friction_cone_dual;
-    kkt_residual.lf().coeffRef(kDimf_verbose*i+2) += 2 * dtau * fy * friction_cone_dual;
-    kkt_residual.lf().coeffRef(kDimf_verbose*i+3) -= 2 * dtau * fy * friction_cone_dual;
-    kkt_residual.lf().coeffRef(kDimf_verbose*i+4) -= 2 * dtau * mu_ * mu_ * fz * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i  ) 
+        += 2 * dtau * fx * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+1) 
+        -= 2 * dtau * fx * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+2) 
+        += 2 * dtau * fy * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+3) 
+        -= 2 * dtau * fy * friction_cone_dual;
+    kkt_residual.lf().coeffRef(kDimf_verbose*i+4) 
+        -= 2 * dtau * mu_ * mu_ * fz * friction_cone_dual;
   }
 }
 
@@ -118,6 +129,9 @@ inline void ContactForceInequality::augmentCondensedHessian(
   assert(dtau > 0);
   assert(diagonal.size() == kDimc*robot.num_point_contacts());
   for (int i=0; i<robot.num_point_contacts(); ++i) {
+    assert(s.f.coeff(3*i  ) == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
+    assert(s.f.coeff(3*i+1) == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
+    assert(s.f.coeff(3*i+2) == s.f_verbose(kDimf_verbose*i+4));
     f_rsc_.coeffRef(0) = - s.f.coeff(kDimb*i  );
     f_rsc_.coeffRef(1) = s.f.coeff(kDimb*i  );
     f_rsc_.coeffRef(2) = - s.f.coeff(kDimb*i+1);
@@ -139,6 +153,9 @@ inline void ContactForceInequality::augmentCondensedResidual(
   assert(dtau > 0);
   assert(condensed_residual.size() == kDimc*robot.num_point_contacts());
   for (int i=0; i<robot.num_point_contacts(); ++i) {
+    assert(s.f.coeff(3*i  ) == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
+    assert(s.f.coeff(3*i+1) == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
+    assert(s.f.coeff(3*i+2) == s.f_verbose(kDimf_verbose*i+4));
     f_rsc_.coeffRef(0) = - s.f.coeff(kDimb*i  );
     f_rsc_.coeffRef(1) = s.f.coeff(kDimb*i  );
     f_rsc_.coeffRef(2) = - s.f.coeff(kDimb*i+1);
@@ -157,12 +174,17 @@ inline void ContactForceInequality::computeSlackDirection(
     const SplitDirection& d, ConstraintComponentData& data) const {
   assert(dtau > 0);
   for (int i=0; i<robot.num_point_contacts(); ++i) {
+    assert(s.f.coeff(3*i  ) == s.f_verbose(kDimf_verbose*i  )-s.f_verbose(kDimf_verbose*i+1));
+    assert(s.f.coeff(3*i+1) == s.f_verbose(kDimf_verbose*i+2)-s.f_verbose(kDimf_verbose*i+3));
+    assert(s.f.coeff(3*i+2) == s.f_verbose(kDimf_verbose*i+4));
     data.dslack.segment<kDimf>(kDimc*i) 
         = dtau * d.df().segment<kDimf>(kDimf_verbose*i);
     data.dslack.coeffRef(kDimc*i+kDimf) 
         = 2 * dtau * 
-            (s.f.coeff(kDimb*i  ) * (-d.df().coeff(kDimf_verbose*i  ) + d.df().coeff(kDimf_verbose*i+1))
-             + s.f.coeff(kDimb*i+1) * (-d.df().coeff(kDimf_verbose*i+2) + d.df().coeff(kDimf_verbose*i+3))
+            (s.f.coeff(kDimb*i  ) * (-d.df().coeff(kDimf_verbose*i  ) 
+                                      + d.df().coeff(kDimf_verbose*i+1))
+             + s.f.coeff(kDimb*i+1) * (-d.df().coeff(kDimf_verbose*i+2) 
+                                        + d.df().coeff(kDimf_verbose*i+3))
              +  mu_ * mu_ * s.f.coeff(kDimb*i+2) * d.df().coeff(kDimf_verbose*i+4));
   }
   data.dslack.noalias() -= data.residual;

@@ -56,8 +56,6 @@ public:
                           const Eigen::MatrixBase<VectorType1>& laf, 
                           const Eigen::MatrixBase<VectorType2>& C);
 
-  void setContactStatus(const Robot& robot);
-
 private:
   int dimv_, dimf_, dimc_;
   Eigen::MatrixXd K_;

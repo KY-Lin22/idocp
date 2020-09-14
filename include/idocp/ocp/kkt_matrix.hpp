@@ -80,9 +80,9 @@ public:
 
   Eigen::Block<Eigen::MatrixXd> Qafqv();
 
-  Eigen::Block<Eigen::MatrixXd> costHessian();
+  Eigen::MatrixXd& costHessian();
 
-  Eigen::Block<Eigen::MatrixXd> constraintsJacobian();
+  Eigen::MatrixXd& constraintsJacobian();
 
   void symmetrize();
 

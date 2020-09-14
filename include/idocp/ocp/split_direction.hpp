@@ -26,8 +26,6 @@ public:
 
   SplitDirection& operator=(SplitDirection&&) noexcept = default;
 
-  void setContactStatus(const Robot& robot);
-
   Eigen::VectorBlock<Eigen::VectorXd> dlmd();
 
   Eigen::VectorBlock<Eigen::VectorXd> dgmm();

@@ -241,7 +241,8 @@ inline void BaumgarteInequality::augmentComplementarityCondensedHessian(
   assert(diagonal.size() == kDimc*robot.num_point_contacts());
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     kkt_matrix.Qaf().block(0, kDimf_verbose*i, robot.dimv(), kDimf).noalias() 
-        += (dtau*dtau) * dBaumgarte_verbose_da_.block(kDimc*i, 0, kDimf, robot.dimv()).transpose()
+        += (dtau*dtau) * dBaumgarte_verbose_da_.block(kDimc*i, 0, kDimf, 
+                                                      robot.dimv()).transpose()
                        * diagonal.template segment<kDimf>(kDimc*i).asDiagonal();
   }
   for (int i=0; i<robot.num_point_contacts(); ++i) {
@@ -261,7 +262,8 @@ inline void BaumgarteInequality::augmentComplementarityCondensedHessian(
     Qff_rsc_.coeffRef(1, 3) += (dtau*dtau) * diagonal.coeff(kDimc*i+3);
     kkt_matrix.Qff().block<kDimf_verbose, kDimf>(kDimf_verbose*i, kDimf_verbose*i)
         .template bottomRows<2>().noalias() += Qff_rsc_;
-    kkt_matrix.Qff().transpose().block<kDimf_verbose, kDimf>(kDimf_verbose*i, kDimf_verbose*i)
+    kkt_matrix.Qff().transpose().block<kDimf_verbose, kDimf>(kDimf_verbose*i, 
+                                                             kDimf_verbose*i)
         .template bottomRows<2>().noalias() += Qff_rsc_;
   }
   for (int i=0; i<robot.num_point_contacts(); ++i) {

@@ -373,7 +373,7 @@ TEST_F(FixedBaseBaumgarteInequalityTest, augmentCondensedResidual) {
   std::cout << g_x << std::endl;
 
   KKTResidual kkt_residual_ref(robot_);
-  kkt_residual_ref.KKT_residual().tail(3*robot_.dimv()+7*robot_.num_point_contacts()) 
+  kkt_residual_ref.KKT_residual.tail(3*robot_.dimv()+7*robot_.num_point_contacts()) 
       = g_x.transpose() * condensed_residual;
   EXPECT_TRUE(kkt_residual.la().isApprox(kkt_residual_ref.la()));
   EXPECT_TRUE(kkt_residual.lf().isApprox(kkt_residual_ref.lf()));

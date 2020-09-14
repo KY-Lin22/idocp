@@ -35,8 +35,6 @@ public:
   // Use default move assign operator.
   RiccatiMatrixInverter& operator=(RiccatiMatrixInverter&&) noexcept = default;
 
-  void setContactStatus(const Robot& robot);
-
   template <typename MatrixType1, typename MatrixType2, typename MatrixType3>
   void invert(const Eigen::MatrixBase<MatrixType1>& G,
               const Eigen::MatrixBase<MatrixType2>& Caf,

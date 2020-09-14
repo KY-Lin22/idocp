@@ -26,8 +26,6 @@ public:
 
   KKTResidual& operator=(KKTResidual&&) noexcept = default;
 
-  Eigen::VectorBlock<Eigen::VectorXd> KKT_residual();
-
   Eigen::VectorBlock<Eigen::VectorXd> Fq();
 
   Eigen::VectorBlock<Eigen::VectorXd> Fv();
@@ -47,8 +45,6 @@ public:
   Eigen::VectorBlock<Eigen::VectorXd> lx();
 
   Eigen::VectorBlock<Eigen::VectorXd> laf();
-
-  const Eigen::VectorBlock<const Eigen::VectorXd> KKT_residual() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> Fq() const;
 
@@ -82,10 +78,9 @@ public:
 
   int dimf() const;
 
-  Eigen::VectorXd lu, u_res;
+  Eigen::VectorXd lu, u_res, KKT_residual;
 
 private:
-  Eigen::VectorXd kkt_residual_;
   int dimv_, dimx_, dimf_, dimc_, dimKKT_;
 
 };

@@ -186,13 +186,13 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qafqv() {
 }
 
 
-inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::costHessian() {
-  return Q_.topLeftCorner(dimQ_, dimQ_);
+inline Eigen::MatrixXd& KKTMatrix::costHessian() {
+  return Q_;
 }
 
 
-inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::constraintsJacobian() {
-  return C_.topLeftCorner(dimc_, dimQ_);
+inline Eigen::MatrixXd& KKTMatrix::constraintsJacobian() {
+  return C_;
 }
 
 
