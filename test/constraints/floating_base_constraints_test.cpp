@@ -31,7 +31,8 @@ protected:
     s.v = Eigen::VectorXd::Random(robot.dimv());
     s.a = Eigen::VectorXd::Random(robot.dimv());
     s.u = Eigen::VectorXd::Random(robot.dimv());
-    s.f = Eigen::VectorXd::Random(robot.dimf());
+    s.f = Eigen::VectorXd::Random(5*robot.num_point_contacts());
+    s.set_f_3D();
     s.mu = Eigen::VectorXd::Random(robot.dim_passive());
     s.lmd = Eigen::VectorXd::Random(robot.dimv());
     s.gmm = Eigen::VectorXd::Random(robot.dimv());
@@ -39,7 +40,7 @@ protected:
     d.dq() = Eigen::VectorXd::Random(robot.dimv());
     d.dv() = Eigen::VectorXd::Random(robot.dimv());
     d.da() = Eigen::VectorXd::Random(robot.dimv());
-    d.df() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+    d.df() = Eigen::VectorXd::Random(5*robot.num_point_contacts());
     d.du = Eigen::VectorXd::Random(robot.dimv());
     dtau = std::abs(Eigen::VectorXd::Random(1)[0]);
     t = std::abs(Eigen::VectorXd::Random(1)[0]);

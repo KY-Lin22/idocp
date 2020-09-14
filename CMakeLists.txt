@@ -38,25 +38,25 @@ add_library(
   src/robot/robot.cpp
   src/robot/floating_base.cpp
   src/robot/point_contact.cpp
-  # src/cost/cost_function.cpp
-  # src/cost/cost_function_data.cpp
-  # src/cost/joint_space_cost.cpp
+  src/cost/cost_function.cpp
+  src/cost/cost_function_data.cpp
+  src/cost/joint_space_cost.cpp
   # src/cost/contact_cost.cpp
-  # src/cost/task_space_3d_cost.cpp
-  # src/cost/task_space_6d_cost.cpp
-  # src/constraints/pdipm_func.cpp
-  # src/constraints/constraints.cpp
-  # src/constraints/constraint_component_base.cpp
-  # src/constraints/constraint_component_data.cpp
-  # src/constraints/joint_position_upper_limit.cpp
-  # src/constraints/joint_position_lower_limit.cpp
-  # src/constraints/joint_velocity_upper_limit.cpp
-  # src/constraints/joint_velocity_lower_limit.cpp
-  # src/constraints/joint_acceleration_upper_limit.cpp
-  # src/constraints/joint_acceleration_lower_limit.cpp
-  # src/constraints/joint_torques_upper_limit.cpp
-  # src/constraints/joint_torques_lower_limit.cpp
-  # src/complementarity/contact_force_inequality.cpp
+  src/cost/task_space_3d_cost.cpp
+  src/cost/task_space_6d_cost.cpp
+  src/constraints/pdipm_func.cpp
+  src/constraints/constraints.cpp
+  src/constraints/constraint_component_base.cpp
+  src/constraints/constraint_component_data.cpp
+  src/constraints/joint_position_upper_limit.cpp
+  src/constraints/joint_position_lower_limit.cpp
+  src/constraints/joint_velocity_upper_limit.cpp
+  src/constraints/joint_velocity_lower_limit.cpp
+  src/constraints/joint_acceleration_upper_limit.cpp
+  src/constraints/joint_acceleration_lower_limit.cpp
+  src/constraints/joint_torques_upper_limit.cpp
+  src/constraints/joint_torques_lower_limit.cpp
+  src/complementarity/contact_force_inequality.cpp
   # src/complementarity/baumgarte_inequality.cpp
   # src/complementarity/contact_complementarity.cpp
   src/ocp/kkt_residual.cpp
