@@ -35,32 +35,23 @@ protected:
 
 
 TEST_F(RobotDynamicsTest, augmentRobotDynamicsFixedBaseWithoutContacts) {
-  std::vector<int> contact_frames = {18};
-  const double baum_a = std::abs(Eigen::VectorXd::Random(1)[0]);
-  const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
-  Robot robot(fixed_base_urdf_, contact_frames, baum_a, baum_b);
+  Robot robot(fixed_base_urdf_);
   std::random_device rnd;
-  std::vector<bool> contact_status = {false};
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTMatrix kkt_matrix(robot);
-  kkt_matrix.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   KKTMatrix kkt_matrix_ref(robot);
-  kkt_matrix_ref.setContactStatus(robot);
   kkt_residual.lq() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.lv() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.la() = Eigen::VectorXd::Random(robot.dimv());
@@ -90,37 +81,28 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFixedBaseWithoutContacts) {
   EXPECT_TRUE(kkt_residual.lu.isApprox(kkt_residual_ref.lu));
   EXPECT_TRUE(kkt_residual.C().isZero());
   const double violation_ref = dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
-  EXPECT_DOUBLE_EQ(rd.violationL1Norm(robot, dtau_, s, kkt_residual), violation_ref);
+  EXPECT_DOUBLE_EQ(rd.violationL1Norm(dtau_, s, kkt_residual), violation_ref);
 }
 
 
 TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithoutContacts) {
-  std::vector<int> contact_frames = {18};
-  const double baum_a = std::abs(Eigen::VectorXd::Random(1)[0]);
-  const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
-  Robot robot(fixed_base_urdf_, contact_frames, baum_a, baum_b);
+  Robot robot(fixed_base_urdf_);
   std::random_device rnd;
-  std::vector<bool> contact_status = {false};
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTMatrix kkt_matrix(robot);
-  kkt_matrix.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   KKTMatrix kkt_matrix_ref(robot);
-  kkt_matrix_ref.setContactStatus(robot);
   const Eigen::MatrixXd Quu_ref = Eigen::MatrixXd::Random(robot.dimv(), 
                                                           robot.dimv());
   kkt_matrix.Quu = Quu_ref;
@@ -173,11 +155,10 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithoutContacts) {
   EXPECT_TRUE(kkt_matrix.Ca().isZero());
   EXPECT_TRUE(kkt_matrix.Cf().isZero());
   SplitDirection d(robot);
-  d.setContactStatus(robot);
   d.dv() = Eigen::VectorXd::Random(robot.dimv());
   d.da() = Eigen::VectorXd::Random(robot.dimv());
-  d.df() = Eigen::VectorXd::Random(robot.dimf());
-  d.dmu() = Eigen::VectorXd::Random(robot.dim_passive()+robot.dimf());
+  d.df() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  d.dmu() = Eigen::VectorXd::Random(robot.dim_passive());
   rd.computeCondensedDirection(dtau_, kkt_matrix, kkt_residual, d);
   Eigen::VectorXd du_ref = kkt_residual_ref.u_res;
   du_ref += du_dq * d.dq();
@@ -201,11 +182,11 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithoutContacts) {
   std::cout << "Cf" << std::endl;
   std::cout << kkt_matrix.Cf() << std::endl;
   const double violation_ref = dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
-  EXPECT_DOUBLE_EQ(rd.violationL1Norm(robot, dtau_, s, kkt_residual), violation_ref);
+  EXPECT_DOUBLE_EQ(rd.violationL1Norm(dtau_, s, kkt_residual), violation_ref);
   const Eigen::MatrixXd da_dq = Eigen::MatrixXd::Random(robot.dimv(), robot.dimv());
   const Eigen::MatrixXd da_dv = Eigen::MatrixXd::Random(robot.dimv(), robot.dimv());
-  const Eigen::MatrixXd df_dq = Eigen::MatrixXd::Random(robot.dimf(), robot.dimv());
-  const Eigen::MatrixXd df_dv = Eigen::MatrixXd::Random(robot.dimf(), robot.dimv());
+  const Eigen::MatrixXd df_dq = Eigen::MatrixXd::Random(7*robot.num_point_contacts(), robot.dimv());
+  const Eigen::MatrixXd df_dv = Eigen::MatrixXd::Random(7*robot.num_point_contacts(), robot.dimv());
   Eigen::MatrixXd Kuq = Eigen::MatrixXd::Zero(robot.dimq(), robot.dimv());
   Eigen::MatrixXd Kuv = Eigen::MatrixXd::Zero(robot.dimq(), robot.dimv());
   rd.getControlInputTorquesSensitivitiesWithRespectToState(da_dq, da_dv, df_dq, 
@@ -216,28 +197,21 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithoutContacts) {
 
 
 TEST_F(RobotDynamicsTest, computeViolationL1NormFixedBaseWithoutContacts) {
-  std::vector<int> contact_frames = {18};
-  const double baum_a = std::abs(Eigen::VectorXd::Random(1)[0]);
-  const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
-  Robot robot(fixed_base_urdf_, contact_frames, baum_a, baum_b);
+  Robot robot(fixed_base_urdf_);
   std::random_device rnd;
-  std::vector<bool> contact_status = {false};
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   RobotDynamics rd(robot);
   robot.updateKinematics(s.q, s.v, s.a);
   robot.setContactForces(s.f);
@@ -255,31 +229,25 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFixedBaseWithContact) {
   const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
   Robot robot(fixed_base_urdf_, contact_frames, baum_a, baum_b);
   std::random_device rnd;
-  std::vector<bool> contact_status = {true};
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTMatrix kkt_matrix(robot);
-  kkt_matrix.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   KKTMatrix kkt_matrix_ref(robot);
-  kkt_matrix_ref.setContactStatus(robot);
   kkt_residual.lq() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.lv() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.la() = Eigen::VectorXd::Random(robot.dimv());
-  kkt_residual.lf() = Eigen::VectorXd::Random(robot.dimf());
+  kkt_residual.lf() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
   kkt_residual.lu = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual_ref.lq() = kkt_residual.lq();
   kkt_residual_ref.lv() = kkt_residual.lv();
@@ -292,24 +260,25 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFixedBaseWithContact) {
   Eigen::MatrixXd du_dq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_dv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_da = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
-  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimf());  
+  Eigen::MatrixXd du_df_minimum = Eigen::MatrixXd::Zero(robot.dimv(), 3*robot.num_point_contacts());  
+  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts());  
   robot.setContactForces(s.f);
   robot.RNEA(s.q, s.v, s.a, kkt_residual_ref.u_res);
   kkt_residual_ref.u_res -= s.u;
   robot.RNEADerivatives(s.q, s.v, s.a, du_dq, du_dv, du_da);
   robot.updateKinematics(s.q, s.v, s.a);
-  robot.dRNEAPartialdFext(du_df);
-  robot.computeBaumgarteResidual(dtau_, kkt_residual_ref.C());
-  robot.computeBaumgarteDerivatives(dtau_, kkt_matrix_ref.Cq(), 
-                                    kkt_matrix_ref.Cv(), kkt_matrix_ref.Ca());
-  kkt_residual_ref.lq() += dtau_ * du_dq.transpose() * s.beta 
-                            + kkt_matrix_ref.Cq().transpose() * s.mu_active();
-  kkt_residual_ref.lv() += dtau_ * du_dv.transpose() * s.beta 
-                            + kkt_matrix_ref.Cv().transpose() * s.mu_active();
-  kkt_residual_ref.la() += dtau_ * du_da.transpose() * s.beta 
-                            + kkt_matrix_ref.Ca().transpose() * s.mu_active();
-  kkt_residual_ref.lf() += dtau_ * du_df.transpose() * s.beta 
-                            + kkt_matrix_ref.Cf().transpose() * s.mu_active();
+  robot.dRNEAPartialdFext(du_df_minimum);
+  for (int i=0; i<robot.num_point_contacts(); ++i) {
+    du_df.col(7*i  ) = du_df_minimum.col(3*i  );
+    du_df.col(7*i+1) = - du_df_minimum.col(3*i  );
+    du_df.col(7*i+2) = du_df_minimum.col(3*i+1);
+    du_df.col(7*i+3) = - du_df_minimum.col(3*i+1);
+    du_df.col(7*i+4) = du_df_minimum.col(3*i+2);
+  }
+  kkt_residual_ref.lq() += dtau_ * du_dq.transpose() * s.beta;
+  kkt_residual_ref.lv() += dtau_ * du_dv.transpose() * s.beta;
+  kkt_residual_ref.la() += dtau_ * du_da.transpose() * s.beta; 
+  kkt_residual_ref.lf() += dtau_ * du_df.transpose() * s.beta; 
   kkt_residual_ref.lu -= dtau_ * s.beta;
   EXPECT_TRUE(kkt_residual.u_res.isApprox(kkt_residual_ref.u_res));
   EXPECT_TRUE(kkt_residual.lq().isApprox(kkt_residual_ref.lq()));
@@ -317,10 +286,9 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFixedBaseWithContact) {
   EXPECT_TRUE(kkt_residual.la().isApprox(kkt_residual_ref.la()));
   EXPECT_TRUE(kkt_residual.lf().isApprox(kkt_residual_ref.lf()));
   EXPECT_TRUE(kkt_residual.lu.isApprox(kkt_residual_ref.lu));
-  EXPECT_TRUE(kkt_residual.C().isApprox(kkt_residual_ref.C().topRows(robot.dimf())));
-  const double violation_ref = kkt_residual_ref.C().lpNorm<1>() 
-                                + dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
-  EXPECT_DOUBLE_EQ(rd.violationL1Norm(robot, dtau_, s, kkt_residual), violation_ref);
+  EXPECT_TRUE(kkt_residual.C().isApprox(kkt_residual_ref.C()));
+  const double violation_ref = dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
+  EXPECT_DOUBLE_EQ(rd.violationL1Norm(dtau_, s, kkt_residual), violation_ref);
 }
 
 
@@ -330,27 +298,21 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithContact) {
   const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
   Robot robot(fixed_base_urdf_, contact_frames, baum_a, baum_b);
   std::random_device rnd;
-  std::vector<bool> contact_status = {true};
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTMatrix kkt_matrix(robot);
-  kkt_matrix.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   KKTMatrix kkt_matrix_ref(robot);
-  kkt_matrix_ref.setContactStatus(robot);
   const Eigen::MatrixXd Quu_ref = Eigen::MatrixXd::Random(robot.dimv(), 
                                                           robot.dimv());
   kkt_matrix.Quu = Quu_ref;
@@ -358,7 +320,7 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithContact) {
   kkt_residual.lq() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.lv() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.la() = Eigen::VectorXd::Random(robot.dimv());
-  kkt_residual.lf() = Eigen::VectorXd::Random(robot.dimf());
+  kkt_residual.lf() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
   kkt_residual.lu = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual_ref.lq() = kkt_residual.lq();
   kkt_residual_ref.lv() = kkt_residual.lv();
@@ -371,30 +333,27 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithContact) {
   Eigen::MatrixXd du_dq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_dv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_da = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
-  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimf());  
+  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts());  
+  Eigen::MatrixXd du_df_minimum = Eigen::MatrixXd::Zero(robot.dimv(), 3*robot.num_point_contacts());  
   robot.setContactForces(s.f);
   robot.RNEA(s.q, s.v, s.a, kkt_residual_ref.u_res);
   kkt_residual_ref.u_res -= s.u;
   robot.RNEADerivatives(s.q, s.v, s.a, du_dq, du_dv, du_da);
   robot.updateKinematics(s.q, s.v, s.a);
-  robot.dRNEAPartialdFext(du_df);
-  robot.computeBaumgarteResidual(dtau_, kkt_residual_ref.C());
-  robot.computeBaumgarteDerivatives(dtau_, kkt_matrix_ref.Cq(), 
-                                    kkt_matrix_ref.Cv(), kkt_matrix_ref.Ca());
+  robot.dRNEAPartialdFext(du_df_minimum);
+  for (int i=0; i<robot.num_point_contacts(); ++i) {
+    du_df.col(7*i  ) = du_df_minimum.col(3*i  );
+    du_df.col(7*i+1) = - du_df_minimum.col(3*i  );
+    du_df.col(7*i+2) = du_df_minimum.col(3*i+1);
+    du_df.col(7*i+3) = - du_df_minimum.col(3*i+1);
+    du_df.col(7*i+4) = du_df_minimum.col(3*i+2);
+  }
   kkt_residual_ref.lu -= dtau_ * s.beta;
   Eigen::VectorXd lu_condensed = kkt_residual_ref.lu + kkt_matrix_ref.Quu * kkt_residual_ref.u_res; 
-  kkt_residual_ref.lq() = dtau_ * du_dq.transpose() * s.beta 
-                          + du_dq.transpose() * lu_condensed 
-                          + kkt_matrix_ref.Cq().transpose() * s.mu_active();
-  kkt_residual_ref.lv() = dtau_ * du_dv.transpose() * s.beta 
-                          + du_dv.transpose() * lu_condensed 
-                          + kkt_matrix_ref.Cv().transpose() * s.mu_active();
-  kkt_residual_ref.la() = dtau_ * du_da.transpose() * s.beta 
-                          + du_da.transpose() * lu_condensed 
-                          + kkt_matrix_ref.Ca().transpose() * s.mu_active();
-  kkt_residual_ref.lf() = dtau_ * du_df.transpose() * s.beta 
-                          + du_df.transpose() * lu_condensed 
-                          + kkt_matrix_ref.Cf().transpose() * s.mu_active();
+  kkt_residual_ref.lq() = dtau_ * du_dq.transpose() * s.beta + du_dq.transpose() * lu_condensed;
+  kkt_residual_ref.lv() = dtau_ * du_dv.transpose() * s.beta + du_dv.transpose() * lu_condensed; 
+  kkt_residual_ref.la() = dtau_ * du_da.transpose() * s.beta + du_da.transpose() * lu_condensed; 
+  kkt_residual_ref.lf() = dtau_ * du_df.transpose() * s.beta + du_df.transpose() * lu_condensed; 
   EXPECT_TRUE(kkt_residual.u_res.isApprox(kkt_residual_ref.u_res));
   EXPECT_TRUE(kkt_residual.lq().isApprox(kkt_residual_ref.lq()));
   EXPECT_TRUE(kkt_residual.lv().isApprox(kkt_residual_ref.lv()));
@@ -402,32 +361,31 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithContact) {
   EXPECT_TRUE(kkt_residual.lf().isApprox(kkt_residual_ref.lf()));
   EXPECT_TRUE(kkt_residual.lu.isApprox(kkt_residual_ref.lu));
   EXPECT_TRUE(kkt_matrix.Qaa().isApprox(du_da.transpose()*Quu_ref*du_da));
-  EXPECT_TRUE(kkt_matrix.Qaf().isApprox(du_da.transpose()*Quu_ref*du_df.leftCols(robot.dimf())));
+  EXPECT_TRUE(kkt_matrix.Qaf().isApprox(du_da.transpose()*Quu_ref*du_df));
   EXPECT_TRUE(kkt_matrix.Qaq().isApprox(du_da.transpose()*Quu_ref*du_dq));
   EXPECT_TRUE(kkt_matrix.Qav().isApprox(du_da.transpose()*Quu_ref*du_dv));
-  EXPECT_TRUE(kkt_matrix.Qff().isApprox(du_df.leftCols(robot.dimf()).transpose()*Quu_ref*du_df.leftCols(robot.dimf())));
-  EXPECT_TRUE(kkt_matrix.Qfq().isApprox(du_df.leftCols(robot.dimf()).transpose()*Quu_ref*du_dq));
-  EXPECT_TRUE(kkt_matrix.Qfv().isApprox(du_df.leftCols(robot.dimf()).transpose()*Quu_ref*du_dv));
+  EXPECT_TRUE(kkt_matrix.Qff().isApprox(du_df.transpose()*Quu_ref*du_df));
+  EXPECT_TRUE(kkt_matrix.Qfq().isApprox(du_df.transpose()*Quu_ref*du_dq));
+  EXPECT_TRUE(kkt_matrix.Qfv().isApprox(du_df.transpose()*Quu_ref*du_dv));
   EXPECT_TRUE(kkt_matrix.Qqq().isApprox(du_dq.transpose()*Quu_ref*du_dq));
   EXPECT_TRUE(kkt_matrix.Qqv().isApprox(du_dq.transpose()*Quu_ref*du_dv));
   EXPECT_TRUE(kkt_matrix.Qvv().isApprox(du_dv.transpose()*Quu_ref*du_dv));
-  EXPECT_TRUE(kkt_residual.C().isApprox(kkt_residual_ref.C().topRows(robot.dimf())));
+  EXPECT_TRUE(kkt_residual.C().isApprox(kkt_residual_ref.C()));
   EXPECT_TRUE(kkt_matrix.Cq().isApprox(kkt_matrix_ref.Cq()));
   EXPECT_TRUE(kkt_matrix.Cv().isApprox(kkt_matrix_ref.Cv()));
   EXPECT_TRUE(kkt_matrix.Ca().isApprox(kkt_matrix_ref.Ca()));
   EXPECT_TRUE(kkt_matrix.Cf().isApprox(kkt_matrix_ref.Cf()));
   SplitDirection d(robot);
-  d.setContactStatus(robot);
   d.dv() = Eigen::VectorXd::Random(robot.dimv());
   d.da() = Eigen::VectorXd::Random(robot.dimv());
-  d.df() = Eigen::VectorXd::Random(robot.dimf());
-  d.dmu() = Eigen::VectorXd::Random(robot.dim_passive()+robot.dimf());
+  d.df() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  d.dmu() = Eigen::VectorXd::Random(robot.dim_passive());
   rd.computeCondensedDirection(dtau_, kkt_matrix, kkt_residual, d);
   Eigen::VectorXd du_ref = kkt_residual_ref.u_res;
   du_ref += du_dq * d.dq();
   du_ref += du_dv * d.dv();
   du_ref += du_da * d.da();
-  du_ref += du_df.leftCols(robot.dimf()) * d.df();
+  du_ref += du_df * d.df();
   EXPECT_TRUE(du_ref.isApprox(d.du));
   Eigen::VectorXd dbeta_ref = (kkt_residual_ref.lu + Quu_ref * du_ref) / dtau_;
   EXPECT_TRUE(dbeta_ref.isApprox(d.dbeta));
@@ -449,11 +407,11 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFixedBaseWithContact) {
   std::cout << kkt_matrix.Cf() << std::endl;
   const double violation_ref = kkt_residual_ref.C().lpNorm<1>() 
                                 + dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
-  EXPECT_DOUBLE_EQ(rd.violationL1Norm(robot, dtau_, s, kkt_residual), violation_ref);
+  EXPECT_DOUBLE_EQ(rd.violationL1Norm(dtau_, s, kkt_residual), violation_ref);
   const Eigen::MatrixXd da_dq = Eigen::MatrixXd::Random(robot.dimv(), robot.dimv());
   const Eigen::MatrixXd da_dv = Eigen::MatrixXd::Random(robot.dimv(), robot.dimv());
-  const Eigen::MatrixXd df_dq = Eigen::MatrixXd::Random(robot.dimf(), robot.dimv());
-  const Eigen::MatrixXd df_dv = Eigen::MatrixXd::Random(robot.dimf(), robot.dimv());
+  const Eigen::MatrixXd df_dq = Eigen::MatrixXd::Random(7*robot.num_point_contacts(), robot.dimv());
+  const Eigen::MatrixXd df_dv = Eigen::MatrixXd::Random(7*robot.num_point_contacts(), robot.dimv());
   Eigen::MatrixXd Kuq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd Kuv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   rd.getControlInputTorquesSensitivitiesWithRespectToState(da_dq, da_dv, df_dq, 
@@ -469,66 +427,48 @@ TEST_F(RobotDynamicsTest, computeViolationL1NormFixedBaseWithContacts) {
   const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
   Robot robot(fixed_base_urdf_, contact_frames, baum_a, baum_b);
   std::random_device rnd;
-  std::vector<bool> contact_status = {true};
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   RobotDynamics rd(robot);
   robot.updateKinematics(s.q, s.v, s.a);
   robot.setContactForces(s.f);
   robot.RNEA(s.q, s.v, s.a, kkt_residual_ref.u_res);
-  robot.computeBaumgarteResidual(dtau_, kkt_residual_ref.C());
   kkt_residual_ref.u_res -= s.u;
-  const double violation_ref = dtau_ * kkt_residual_ref.u_res.lpNorm<1>()
-                                + kkt_residual_ref.C().head(robot.dimf()).lpNorm<1>();
+  const double violation_ref = dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
   EXPECT_DOUBLE_EQ(rd.computeViolationL1Norm(robot, dtau_, s, kkt_residual), 
                    violation_ref);
 }
 
 
 TEST_F(RobotDynamicsTest, augmentRobotDynamicsFloatingBaseWithoutContacts) {
-  std::vector<int> contact_frames = {14, 24, 34, 44};
-  const double baum_a = std::abs(Eigen::VectorXd::Random(1)[0]);
-  const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
-  Robot robot(floating_base_urdf_, contact_frames, baum_a, baum_b);
+  Robot robot(floating_base_urdf_);
   std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(false);
-  }
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTMatrix kkt_matrix(robot);
-  kkt_matrix.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   KKTMatrix kkt_matrix_ref(robot);
-  kkt_matrix_ref.setContactStatus(robot);
   kkt_residual.lq() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.lv() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.la() = Eigen::VectorXd::Random(robot.dimv());
@@ -542,8 +482,7 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFloatingBaseWithoutContacts) {
   Eigen::MatrixXd du_dq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_dv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_da = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
-  Eigen::MatrixXd Cu 
-      = Eigen::MatrixXd::Zero(robot.dim_passive()+robot.dimf(), robot.dimv());  
+  Eigen::MatrixXd Cu = Eigen::MatrixXd::Zero(robot.dim_passive(), robot.dimv());  
   Cu.bottomLeftCorner(robot.dim_passive(), robot.dim_passive()).diagonal().fill(dtau_);
   robot.setContactForces(s.f);
   robot.RNEA(s.q, s.v, s.a, kkt_residual_ref.u_res);
@@ -552,8 +491,8 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFloatingBaseWithoutContacts) {
   kkt_residual_ref.lq() += dtau_ * du_dq.transpose() * s.beta;
   kkt_residual_ref.lv() += dtau_ * du_dv.transpose() * s.beta; 
   kkt_residual_ref.la() += dtau_ * du_da.transpose() * s.beta;
-  kkt_residual_ref.lu += - dtau_ * s.beta + Cu.transpose() * s.mu_active();
-  kkt_residual_ref.C().tail(robot.dim_passive()) = dtau_ * s.u.head(robot.dim_passive());
+  kkt_residual_ref.lu += - dtau_ * s.beta + Cu.transpose() * s.mu;
+  kkt_residual_ref.C() = dtau_ * s.u.head(robot.dim_passive());
   EXPECT_TRUE(kkt_residual.u_res.isApprox(kkt_residual_ref.u_res));
   EXPECT_TRUE(kkt_residual.lq().isApprox(kkt_residual_ref.lq()));
   EXPECT_TRUE(kkt_residual.lv().isApprox(kkt_residual_ref.lv()));
@@ -563,40 +502,28 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFloatingBaseWithoutContacts) {
   EXPECT_TRUE(kkt_residual.C().isApprox(kkt_residual_ref.C()));
   const double violation_ref = dtau_ * s.u.head(6).lpNorm<1>()
                                 + dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
-  EXPECT_DOUBLE_EQ(rd.violationL1Norm(robot, dtau_, s, kkt_residual), violation_ref);
+  EXPECT_DOUBLE_EQ(rd.violationL1Norm(dtau_, s, kkt_residual), violation_ref);
 }
 
 
 TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithoutContacts) {
-  std::vector<int> contact_frames = {14, 24, 34, 44};
-  const double baum_a = std::abs(Eigen::VectorXd::Random(1)[0]);
-  const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
-  Robot robot(floating_base_urdf_, contact_frames, baum_a, baum_b);
+  Robot robot(floating_base_urdf_);
   std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(false);
-  }
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTMatrix kkt_matrix(robot);
-  kkt_matrix.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   KKTMatrix kkt_matrix_ref(robot);
-  kkt_matrix_ref.setContactStatus(robot);
   const Eigen::MatrixXd Quu_ref = Eigen::MatrixXd::Random(robot.dimv(), 
                                                           robot.dimv());
   kkt_matrix.Quu = Quu_ref;
@@ -615,9 +542,9 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithoutContacts) {
   Eigen::MatrixXd du_dq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_dv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_da = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
-  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimf());  
-  Eigen::MatrixXd Cu 
-      = Eigen::MatrixXd::Zero(robot.dim_passive()+robot.dimf(), robot.dimv());  
+  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts());  
+  Eigen::MatrixXd du_df_minimum = Eigen::MatrixXd::Zero(robot.dimv(), 3*robot.num_point_contacts());  
+  Eigen::MatrixXd Cu = Eigen::MatrixXd::Zero(robot.dim_passive(), robot.dimv());  
   Cu.bottomLeftCorner(robot.dim_passive(), robot.dim_passive()).diagonal().fill(dtau_);
   robot.RNEA(s.q, s.v, s.a, kkt_residual_ref.u_res);
   kkt_residual_ref.u_res -= s.u;
@@ -625,17 +552,17 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithoutContacts) {
   kkt_residual_ref.C().tail(robot.dim_passive()) 
       = dtau_ * s.u.head(robot.dim_passive());
   kkt_residual_ref.lu -= dtau_ * s.beta;
-  kkt_residual_ref.lu += Cu.transpose() * s.mu_active();
+  kkt_residual_ref.lu += Cu.transpose() * s.mu;
   Eigen::VectorXd lu_condensed = kkt_residual_ref.lu + kkt_matrix_ref.Quu * kkt_residual_ref.u_res; 
   kkt_residual_ref.lq() = dtau_ * du_dq.transpose() * s.beta 
                           + du_dq.transpose() * lu_condensed
-                          + kkt_matrix_ref.Cq().transpose() * s.mu_active();
+                          + kkt_matrix_ref.Cq().transpose() * s.mu;
   kkt_residual_ref.lv() = dtau_ * du_dv.transpose() * s.beta 
                           + du_dv.transpose() * lu_condensed
-                          + kkt_matrix_ref.Cq().transpose() * s.mu_active();
+                          + kkt_matrix_ref.Cq().transpose() * s.mu;
   kkt_residual_ref.la() = dtau_ * du_da.transpose() * s.beta 
                           + du_da.transpose() * lu_condensed
-                          + kkt_matrix_ref.Cq().transpose() * s.mu_active();
+                          + kkt_matrix_ref.Cq().transpose() * s.mu;
   kkt_residual_ref.C() += Cu * kkt_residual_ref.u_res;
   kkt_matrix_ref.Cq() += Cu * du_dq;
   kkt_matrix_ref.Cv() += Cu * du_dv;
@@ -663,11 +590,10 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithoutContacts) {
   EXPECT_TRUE(kkt_matrix.Ca().isApprox(kkt_matrix_ref.Ca()));
   EXPECT_TRUE(kkt_matrix.Cf().isZero());
   SplitDirection d(robot);
-  d.setContactStatus(robot);
   d.dv() = Eigen::VectorXd::Random(robot.dimv());
   d.da() = Eigen::VectorXd::Random(robot.dimv());
-  d.df() = Eigen::VectorXd::Random(robot.dimf());
-  d.dmu() = Eigen::VectorXd::Random(robot.dim_passive()+robot.dimf());
+  d.df() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  d.dmu() = Eigen::VectorXd::Random(robot.dim_passive());
   rd.computeCondensedDirection(dtau_, kkt_matrix, kkt_residual, d);
   Eigen::VectorXd du_ref = kkt_residual_ref.u_res;
   du_ref += du_dq * d.dq();
@@ -695,11 +621,11 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithoutContacts) {
   std::cout << kkt_matrix.Cf() << std::endl;
   const double violation_ref = dtau_ * s.u.head(6).lpNorm<1>()
                                 + dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
-  EXPECT_DOUBLE_EQ(rd.violationL1Norm(robot, dtau_, s, kkt_residual), violation_ref);
+  EXPECT_DOUBLE_EQ(rd.violationL1Norm(dtau_, s, kkt_residual), violation_ref);
   const Eigen::MatrixXd da_dq = Eigen::MatrixXd::Random(robot.dimv(), robot.dimv());
   const Eigen::MatrixXd da_dv = Eigen::MatrixXd::Random(robot.dimv(), robot.dimv());
-  const Eigen::MatrixXd df_dq = Eigen::MatrixXd::Random(robot.dimf(), robot.dimv());
-  const Eigen::MatrixXd df_dv = Eigen::MatrixXd::Random(robot.dimf(), robot.dimv());
+  const Eigen::MatrixXd df_dq = Eigen::MatrixXd::Random(7*robot.num_point_contacts(), robot.dimv());
+  const Eigen::MatrixXd df_dv = Eigen::MatrixXd::Random(7*robot.num_point_contacts(), robot.dimv());
   Eigen::MatrixXd Kuq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd Kuv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   rd.getControlInputTorquesSensitivitiesWithRespectToState(da_dq, da_dv, df_dq, 
@@ -710,31 +636,21 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithoutContacts) {
 
 
 TEST_F(RobotDynamicsTest, computeViolationL1NormFloatingBaseWithoutContacts) {
-  std::vector<int> contact_frames = {14, 24, 34, 44};
-  const double baum_a = std::abs(Eigen::VectorXd::Random(1)[0]);
-  const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
-  Robot robot(floating_base_urdf_, contact_frames, baum_a, baum_b);
+  Robot robot(floating_base_urdf_);
   std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(false);
-  }
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   RobotDynamics rd(robot);
   robot.updateKinematics(s.q, s.v, s.a);
   robot.setContactForces(s.f);
@@ -753,34 +669,25 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFloatingBaseWithContacts) {
   const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
   Robot robot(floating_base_urdf_, contact_frames, baum_a, baum_b);
   std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(rnd()%2==0);
-  }
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTMatrix kkt_matrix(robot);
-  kkt_matrix.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   KKTMatrix kkt_matrix_ref(robot);
-  kkt_matrix_ref.setContactStatus(robot);
   kkt_residual.lq() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.lv() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.la() = Eigen::VectorXd::Random(robot.dimv());
-  kkt_residual.lf() = Eigen::VectorXd::Random(robot.dimf());
+  kkt_residual.lf() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
   kkt_residual.lu = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual_ref.lq() = kkt_residual.lq();
   kkt_residual_ref.lv() = kkt_residual.lv();
@@ -793,29 +700,33 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFloatingBaseWithContacts) {
   Eigen::MatrixXd du_dq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_dv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_da = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
-  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimf());  
-  Eigen::MatrixXd Cu 
-      = Eigen::MatrixXd::Zero(robot.dim_passive()+robot.dimf(), robot.dimv());  
+  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts());  
+  Eigen::MatrixXd du_df_minimum = Eigen::MatrixXd::Zero(robot.dimv(), 3*robot.num_point_contacts());  
+  Eigen::MatrixXd Cu = Eigen::MatrixXd::Zero(robot.dim_passive(), robot.dimv());  
   Cu.bottomLeftCorner(robot.dim_passive(), robot.dim_passive()).diagonal().fill(dtau_);
   robot.setContactForces(s.f);
   robot.RNEA(s.q, s.v, s.a, kkt_residual_ref.u_res);
   kkt_residual_ref.u_res -= s.u;
   robot.RNEADerivatives(s.q, s.v, s.a, du_dq, du_dv, du_da);
   robot.updateKinematics(s.q, s.v, s.a);
-  robot.dRNEAPartialdFext(du_df);
-  robot.computeBaumgarteResidual(dtau_, kkt_residual_ref.C());
-  robot.computeBaumgarteDerivatives(dtau_, kkt_matrix_ref.Cq(), 
-                                    kkt_matrix_ref.Cv(), kkt_matrix_ref.Ca());
+  robot.dRNEAPartialdFext(du_df_minimum);
+  for (int i=0; i<robot.num_point_contacts(); ++i) {
+    du_df.col(7*i  ) = du_df_minimum.col(3*i  );
+    du_df.col(7*i+1) = - du_df_minimum.col(3*i  );
+    du_df.col(7*i+2) = du_df_minimum.col(3*i+1);
+    du_df.col(7*i+3) = - du_df_minimum.col(3*i+1);
+    du_df.col(7*i+4) = du_df_minimum.col(3*i+2);
+  }
   kkt_residual_ref.lq() += dtau_ * du_dq.transpose() * s.beta 
-                            + kkt_matrix_ref.Cq().transpose() * s.mu_active();
+                            + kkt_matrix_ref.Cq().transpose() * s.mu;
   kkt_residual_ref.lv() += dtau_ * du_dv.transpose() * s.beta 
-                            + kkt_matrix_ref.Cv().transpose() * s.mu_active();
+                            + kkt_matrix_ref.Cv().transpose() * s.mu;
   kkt_residual_ref.la() += dtau_ * du_da.transpose() * s.beta 
-                            + kkt_matrix_ref.Ca().transpose() * s.mu_active();
+                            + kkt_matrix_ref.Ca().transpose() * s.mu;
   kkt_residual_ref.lf() += dtau_ * du_df.transpose() * s.beta 
-                            + kkt_matrix_ref.Cf().transpose() * s.mu_active();
-  kkt_residual_ref.lu += - dtau_ * s.beta + Cu.transpose() * s.mu_active();
-  kkt_residual_ref.C().tail(robot.dim_passive()) = dtau_ * s.u.head(robot.dim_passive());
+                            + kkt_matrix_ref.Cf().transpose() * s.mu;
+  kkt_residual_ref.lu += - dtau_ * s.beta + Cu.transpose() * s.mu;
+  kkt_residual_ref.C() = dtau_ * s.u.head(robot.dim_passive());
   EXPECT_TRUE(kkt_residual.u_res.isApprox(kkt_residual_ref.u_res));
   EXPECT_TRUE(kkt_residual.lq().isApprox(kkt_residual_ref.lq()));
   EXPECT_TRUE(kkt_residual.lv().isApprox(kkt_residual_ref.lv()));
@@ -823,10 +734,9 @@ TEST_F(RobotDynamicsTest, augmentRobotDynamicsFloatingBaseWithContacts) {
   EXPECT_TRUE(kkt_residual.lf().isApprox(kkt_residual_ref.lf()));
   EXPECT_TRUE(kkt_residual.lu.isApprox(kkt_residual_ref.lu));
   EXPECT_TRUE(kkt_residual.C().isApprox(kkt_residual_ref.C()));
-  const double violation_ref = kkt_residual_ref.C().head(robot.dimf()).lpNorm<1>()
-                                + dtau_ * s.u.head(6).lpNorm<1>()
+  const double violation_ref = dtau_ * s.u.head(6).lpNorm<1>()
                                 + dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
-  EXPECT_DOUBLE_EQ(rd.violationL1Norm(robot, dtau_, s, kkt_residual), violation_ref);
+  EXPECT_DOUBLE_EQ(rd.violationL1Norm(dtau_, s, kkt_residual), violation_ref);
 }
 
 
@@ -836,30 +746,21 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithContacts) {
   const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
   Robot robot(floating_base_urdf_, contact_frames, baum_a, baum_b);
   std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(rnd()%2==0);
-  }
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTMatrix kkt_matrix(robot);
-  kkt_matrix.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   KKTMatrix kkt_matrix_ref(robot);
-  kkt_matrix_ref.setContactStatus(robot);
   const Eigen::MatrixXd Quu_ref = Eigen::MatrixXd::Random(robot.dimv(), 
                                                           robot.dimv());
   kkt_matrix.Quu = Quu_ref;
@@ -867,7 +768,7 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithContacts) {
   kkt_residual.lq() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.lv() = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual.la() = Eigen::VectorXd::Random(robot.dimv());
-  kkt_residual.lf() = Eigen::VectorXd::Random(robot.dimf());
+  kkt_residual.lf() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
   kkt_residual.lu = Eigen::VectorXd::Random(robot.dimv());
   kkt_residual_ref.lq() = kkt_residual.lq();
   kkt_residual_ref.lv() = kkt_residual.lv();
@@ -880,36 +781,39 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithContacts) {
   Eigen::MatrixXd du_dq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_dv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd du_da = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
-  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimf());  
-  Eigen::MatrixXd Cu 
-      = Eigen::MatrixXd::Zero(robot.dim_passive()+robot.dimf(), robot.dimv());  
+  Eigen::MatrixXd du_df = Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts());  
+  Eigen::MatrixXd du_df_minimum = Eigen::MatrixXd::Zero(robot.dimv(), 3*robot.num_point_contacts());  
+  Eigen::MatrixXd Cu = Eigen::MatrixXd::Zero(robot.dim_passive(), robot.dimv());  
   Cu.bottomLeftCorner(robot.dim_passive(), robot.dim_passive()).diagonal().fill(dtau_);
   robot.setContactForces(s.f);
   robot.RNEA(s.q, s.v, s.a, kkt_residual_ref.u_res);
   kkt_residual_ref.u_res -= s.u;
   robot.RNEADerivatives(s.q, s.v, s.a, du_dq, du_dv, du_da);
   robot.updateKinematics(s.q, s.v, s.a);
-  robot.dRNEAPartialdFext(du_df);
-  robot.computeBaumgarteResidual(dtau_, kkt_residual_ref.C());
-  kkt_residual_ref.C().tail(robot.dim_passive()) 
-      = dtau_ * s.u.head(robot.dim_passive());
-  robot.computeBaumgarteDerivatives(dtau_, kkt_matrix_ref.Cq(), 
-                                    kkt_matrix_ref.Cv(), kkt_matrix_ref.Ca());
+  robot.dRNEAPartialdFext(du_df_minimum);
+  for (int i=0; i<robot.num_point_contacts(); ++i) {
+    du_df.col(7*i  ) = du_df_minimum.col(3*i  );
+    du_df.col(7*i+1) = - du_df_minimum.col(3*i  );
+    du_df.col(7*i+2) = du_df_minimum.col(3*i+1);
+    du_df.col(7*i+3) = - du_df_minimum.col(3*i+1);
+    du_df.col(7*i+4) = du_df_minimum.col(3*i+2);
+  }
+  kkt_residual_ref.C() = dtau_ * s.u.head(robot.dim_passive());
   kkt_residual_ref.lu -= dtau_ * s.beta;
-  kkt_residual_ref.lu += Cu.transpose() * s.mu_active();
+  kkt_residual_ref.lu += Cu.transpose() * s.mu;
   Eigen::VectorXd lu_condensed = kkt_residual_ref.lu + kkt_matrix_ref.Quu * kkt_residual_ref.u_res; 
   kkt_residual_ref.lq() = dtau_ * du_dq.transpose() * s.beta 
                           + du_dq.transpose() * lu_condensed 
-                          + kkt_matrix_ref.Cq().transpose() * s.mu_active();
+                          + kkt_matrix_ref.Cq().transpose() * s.mu;
   kkt_residual_ref.lv() = dtau_ * du_dv.transpose() * s.beta 
                           + du_dv.transpose() * lu_condensed 
-                          + kkt_matrix_ref.Cv().transpose() * s.mu_active();
+                          + kkt_matrix_ref.Cv().transpose() * s.mu;
   kkt_residual_ref.la() = dtau_ * du_da.transpose() * s.beta 
                           + du_da.transpose() * lu_condensed 
-                          + kkt_matrix_ref.Ca().transpose() * s.mu_active();
+                          + kkt_matrix_ref.Ca().transpose() * s.mu;
   kkt_residual_ref.lf() = dtau_ * du_df.transpose() * s.beta 
                           + du_df.transpose() * lu_condensed 
-                          + kkt_matrix_ref.Cf().transpose() * s.mu_active();
+                          + kkt_matrix_ref.Cf().transpose() * s.mu;
   kkt_residual_ref.C() += Cu * kkt_residual_ref.u_res;
   kkt_matrix_ref.Cq() += Cu * du_dq;
   kkt_matrix_ref.Cv() += Cu * du_dv;
@@ -922,12 +826,12 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithContacts) {
   EXPECT_TRUE(kkt_residual.lf().isApprox(kkt_residual_ref.lf()));
   EXPECT_TRUE(kkt_residual.lu.isApprox(kkt_residual_ref.lu));
   EXPECT_TRUE(kkt_matrix.Qaa().isApprox(du_da.transpose()*Quu_ref*du_da));
-  EXPECT_TRUE(kkt_matrix.Qaf().isApprox(du_da.transpose()*Quu_ref*du_df.leftCols(robot.dimf())));
+  EXPECT_TRUE(kkt_matrix.Qaf().isApprox(du_da.transpose()*Quu_ref*du_df));
   EXPECT_TRUE(kkt_matrix.Qaq().isApprox(du_da.transpose()*Quu_ref*du_dq));
   EXPECT_TRUE(kkt_matrix.Qav().isApprox(du_da.transpose()*Quu_ref*du_dv));
-  EXPECT_TRUE(kkt_matrix.Qff().isApprox(du_df.leftCols(robot.dimf()).transpose()*Quu_ref*du_df.leftCols(robot.dimf())));
-  EXPECT_TRUE(kkt_matrix.Qfq().isApprox(du_df.leftCols(robot.dimf()).transpose()*Quu_ref*du_dq));
-  EXPECT_TRUE(kkt_matrix.Qfv().isApprox(du_df.leftCols(robot.dimf()).transpose()*Quu_ref*du_dv));
+  EXPECT_TRUE(kkt_matrix.Qff().isApprox(du_df.transpose()*Quu_ref*du_df));
+  EXPECT_TRUE(kkt_matrix.Qfq().isApprox(du_df.transpose()*Quu_ref*du_dq));
+  EXPECT_TRUE(kkt_matrix.Qfv().isApprox(du_df.transpose()*Quu_ref*du_dv));
   EXPECT_TRUE(kkt_matrix.Qqq().isApprox(du_dq.transpose()*Quu_ref*du_dq));
   EXPECT_TRUE(kkt_matrix.Qqv().isApprox(du_dq.transpose()*Quu_ref*du_dv));
   EXPECT_TRUE(kkt_matrix.Qvv().isApprox(du_dv.transpose()*Quu_ref*du_dv));
@@ -937,19 +841,16 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithContacts) {
   EXPECT_TRUE(kkt_matrix.Ca().isApprox(kkt_matrix_ref.Ca()));
   EXPECT_TRUE(kkt_matrix.Cf().isApprox(kkt_matrix_ref.Cf()));
   SplitDirection d(robot);
-  d.setContactStatus(robot);
   d.dv() = Eigen::VectorXd::Random(robot.dimv());
   d.da() = Eigen::VectorXd::Random(robot.dimv());
-  d.df() = Eigen::VectorXd::Random(robot.dimf());
-  d.dmu() = Eigen::VectorXd::Random(robot.dim_passive()+robot.dimf());
+  d.df() = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  d.dmu() = Eigen::VectorXd::Random(robot.dim_passive());
   rd.computeCondensedDirection(dtau_, kkt_matrix, kkt_residual, d);
   Eigen::VectorXd du_ref = kkt_residual_ref.u_res;
   du_ref += du_dq * d.dq();
   du_ref += du_dv * d.dv();
   du_ref += du_da * d.da();
-  if (robot.has_active_contacts()) {
-    du_ref += du_df.leftCols(robot.dimf()) * d.df();
-  }
+  du_ref += du_df * d.df();
   EXPECT_TRUE(du_ref.isApprox(d.du));
   Eigen::VectorXd dbeta_ref = (kkt_residual_ref.lu + Quu_ref * du_ref) / dtau_;
   dbeta_ref += Cu.transpose() * d.dmu() / dtau_;
@@ -974,14 +875,13 @@ TEST_F(RobotDynamicsTest, condenseRobotDynamicsFloatingBaseWithContacts) {
   std::cout << Cu << std::endl;
   std::cout << "Cu.transpose()" << std::endl;
   std::cout << Cu.transpose() << std::endl;
-  const double violation_ref = kkt_residual_ref.C().head(robot.dimf()).lpNorm<1>()
-                                + dtau_ * s.u.head(6).lpNorm<1>()
+  const double violation_ref = dtau_ * s.u.head(6).lpNorm<1>()
                                 + dtau_ * kkt_residual_ref.u_res.lpNorm<1>();
-  EXPECT_DOUBLE_EQ(rd.violationL1Norm(robot, dtau_, s, kkt_residual), violation_ref);
+  EXPECT_DOUBLE_EQ(rd.violationL1Norm(dtau_, s, kkt_residual), violation_ref);
   const Eigen::MatrixXd da_dq = Eigen::MatrixXd::Random(robot.dimv(), robot.dimv());
   const Eigen::MatrixXd da_dv = Eigen::MatrixXd::Random(robot.dimv(), robot.dimv());
-  const Eigen::MatrixXd df_dq = Eigen::MatrixXd::Random(robot.dimf(), robot.dimv());
-  const Eigen::MatrixXd df_dv = Eigen::MatrixXd::Random(robot.dimf(), robot.dimv());
+  const Eigen::MatrixXd df_dq = Eigen::MatrixXd::Random(7*robot.num_point_contacts(), robot.dimv());
+  const Eigen::MatrixXd df_dv = Eigen::MatrixXd::Random(7*robot.num_point_contacts(), robot.dimv());
   Eigen::MatrixXd Kuq = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   Eigen::MatrixXd Kuv = Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv());
   rd.getControlInputTorquesSensitivitiesWithRespectToState(da_dq, da_dv, df_dq, 
@@ -997,35 +897,26 @@ TEST_F(RobotDynamicsTest, computeViolationL1NormFloatingBaseWithContacts) {
   const double baum_b = std::abs(Eigen::VectorXd::Random(1)[0]);
   Robot robot(floating_base_urdf_, contact_frames, baum_a, baum_b);
   std::random_device rnd;
-  std::vector<bool> contact_status;
-  for (const auto frame : contact_frames) {
-    contact_status.push_back(rnd()%2==0);
-  }
-  robot.setContactStatus(contact_status);
   SplitSolution s(robot);
-  s.setContactStatus(robot);
   robot.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot.dimv());
   s.a = Eigen::VectorXd::Random(robot.dimv());
-  s.f = Eigen::VectorXd::Random(robot.max_dimf());
-  s.mu = Eigen::VectorXd::Random(robot.dim_passive()+robot.max_dimf());
+  s.f_verbose = Eigen::VectorXd::Random(7*robot.num_point_contacts());
+  s.mu = Eigen::VectorXd::Random(robot.dim_passive());
   s.lmd = Eigen::VectorXd::Random(robot.dimv());
   s.gmm = Eigen::VectorXd::Random(robot.dimv());
   s.u = Eigen::VectorXd::Random(robot.dimv());
   s.beta = Eigen::VectorXd::Random(robot.dimv());
+  s.set_f();
   KKTResidual kkt_residual(robot);
-  kkt_residual.setContactStatus(robot);
   KKTResidual kkt_residual_ref(robot);
-  kkt_residual_ref.setContactStatus(robot);
   RobotDynamics rd(robot);
   robot.updateKinematics(s.q, s.v, s.a);
   robot.setContactForces(s.f);
   robot.RNEA(s.q, s.v, s.a, kkt_residual_ref.u_res);
-  robot.computeBaumgarteResidual(dtau_, kkt_residual_ref.C());
   kkt_residual_ref.u_res -= s.u;
   const double violation_ref = dtau_ * kkt_residual_ref.u_res.lpNorm<1>()
-                                + dtau_ * s.u.head(robot.dim_passive()).lpNorm<1>()
-                                + kkt_residual_ref.C().head(robot.dimf()).lpNorm<1>();
+                                + dtau_ * s.u.head(robot.dim_passive()).lpNorm<1>();
   EXPECT_DOUBLE_EQ(rd.computeViolationL1Norm(robot, dtau_, s, kkt_residual), 
                    violation_ref);
 }

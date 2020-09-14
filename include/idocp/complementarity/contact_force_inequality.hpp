@@ -17,7 +17,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   ContactForceInequality(const Robot& robot, const double mu, 
-                  const double barrier, const double fraction_to_boundary_rate);
+                         const double barrier);
 
   ContactForceInequality();
 
@@ -67,7 +67,7 @@ private:
   static constexpr int kDimc = 6;
   static constexpr int kDimf_verbose = 7;
   int num_point_contacts_, dimc_; 
-  double mu_, barrier_, fraction_to_boundary_rate_;
+  double mu_, barrier_;
   Eigen::Matrix<double, kDimf, 1> f_rsc_;
 
 };

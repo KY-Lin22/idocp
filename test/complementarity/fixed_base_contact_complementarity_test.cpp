@@ -25,7 +25,7 @@ protected:
     mu_ = std::abs(Eigen::VectorXd::Random(1)[0]);
     barrier_ = 1.0e-04;
     dtau_ = std::abs(Eigen::VectorXd::Random(1)[0]);
-    fraction_to_boundary_rate_ = std::abs(Eigen::VectorXd::Random(1)[0]);
+    fraction_to_boundary_rate_ = 0.995;
     const std::vector<int> contact_frames = {18};
     const std::string urdf = "../urdf/iiwa14/iiwa14.urdf";
     robot_ = Robot(urdf, contact_frames, 0, 0);

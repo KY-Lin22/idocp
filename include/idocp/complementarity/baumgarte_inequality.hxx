@@ -5,13 +5,11 @@
 
 namespace idocp {
 
-inline BaumgarteInequality::BaumgarteInequality(
-    const Robot& robot, const double barrier, 
-    const double fraction_to_boundary_rate)
+inline BaumgarteInequality::BaumgarteInequality(const Robot& robot, 
+                                                const double barrier)
   : num_point_contacts_(robot.num_point_contacts()),
     dimc_(6*robot.num_point_contacts()),
     barrier_(barrier), 
-    fraction_to_boundary_rate_(fraction_to_boundary_rate),
     Baumgarte_residual_(Eigen::VectorXd::Zero(3*robot.num_point_contacts())),
     dBaumgarte_dq_(Eigen::MatrixXd::Zero(3*robot.num_point_contacts(), 
                                          robot.dimv())),
@@ -34,7 +32,6 @@ inline BaumgarteInequality::BaumgarteInequality()
   : num_point_contacts_(0),
     dimc_(0),
     barrier_(0), 
-    fraction_to_boundary_rate_(0),
     dBaumgarte_dq_(),
     dBaumgarte_dv_(),
     dBaumgarte_da_(),

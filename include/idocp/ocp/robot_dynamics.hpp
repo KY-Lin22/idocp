@@ -43,15 +43,12 @@ public:
                                  const KKTResidual& kkt_residual, 
                                  SplitDirection& d);
 
-  double violationL1Norm(Robot& robot, const double dtau, 
-                         const SplitSolution& s, 
+  double violationL1Norm(const double dtau, const SplitSolution& s, 
                          KKTResidual& kkt_residual) const;
 
   double computeViolationL1Norm(Robot& robot, const double dtau, 
                                 const SplitSolution& s, 
                                 KKTResidual& kkt_residual) const;
-
-  void setContactStatus(const Robot& robot);
 
   template <typename MatrixType1, typename MatrixType2, typename MatrixType3, 
             typename MatrixType4, typename MatrixType5, typename MatrixType6>
@@ -65,34 +62,18 @@ public:
 
 private:
   Eigen::VectorXd lu_condensed_;
-  Eigen::MatrixXd du_dq_, du_dv_, du_da_, du_df_, 
+  Eigen::MatrixXd du_dq_, du_dv_, du_da_, du_df_, du_df_minimum_, 
                   Quu_du_dq_, Quu_du_dv_, Quu_du_da_, Quu_du_df_;
-  bool has_floating_base_, has_active_contacts_;
+  bool has_floating_base_, has_contacts_;
   int dimf_;
   static constexpr int kDimFloatingBase = 6;
 
   void linearizeInverseDynamics(Robot& robot, const SplitSolution& s, 
                                 KKTResidual& kkt_residual);
 
-  void linearizeContactConstraint(Robot& robot, const double dtau,
-                                  KKTMatrix& kkt_matrix, 
-                                  KKTResidual& kkt_residual) const;
-
   void linearizeFloatingBaseConstraint(const Robot& robot, const double dtau,
                                        const SplitSolution& s, 
                                        KKTResidual& kkt_residual) const;
-
-  Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic, true> 
-  du_df_active_();
-
-  const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic, true> 
-  du_df_active_() const;
-
-  Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic, true> 
-  Quu_du_df_active_();
-
-  const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic, true> 
-  Quu_du_df_active_() const;
 
 };
 

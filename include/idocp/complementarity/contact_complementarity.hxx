@@ -1,6 +1,7 @@
 #include "idocp/complementarity/contact_complementarity.hpp"
 #include "idocp/constraints/pdipm_func.hpp"
 
+#include <algorithm>
 #include <assert.h>
 
 namespace idocp {
@@ -13,8 +14,8 @@ inline ContactComplementarity::ContactComplementarity(
     max_complementarity_violation_(max_complementarity_violation), 
     barrier_(barrier), 
     fraction_to_boundary_rate_(fraction_to_boundary_rate),
-    contact_force_inequality_(robot, mu, barrier, fraction_to_boundary_rate),
-    baumgarte_inequality_(robot, barrier, fraction_to_boundary_rate),
+    contact_force_inequality_(robot, mu, barrier),
+    baumgarte_inequality_(robot, barrier),
     force_data_(dimc_),
     baumgarte_data_(dimc_),
     complementarity_data_(dimc_),
@@ -211,6 +212,78 @@ inline void ContactComplementarity::computeSlackAndDualDirection(
         - complementarity_data_.dual.array() * force_data_.dslack.array()
         - complementarity_data_.ddual.array() * force_data_.slack.array()
         - baumgarte_data_.duality.array() / baumgarte_data_.slack.array();
+}
+
+
+inline double ContactComplementarity::maxSlackStepSize() const {
+  const double step_size_force 
+      = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
+                                      force_data_.slack, force_data_.dslack);
+  const double step_size_baumgarte
+      = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
+                                      baumgarte_data_.slack, 
+                                      baumgarte_data_.dslack);
+  const double step_size_complementarity
+      = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
+                                      complementarity_data_.slack, 
+                                      complementarity_data_.dslack);
+  return std::min({step_size_force, step_size_baumgarte, 
+                   step_size_complementarity});
+}
+
+
+inline double ContactComplementarity::maxDualStepSize() const {
+  const double step_size_force 
+      = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
+                                      force_data_.dual, force_data_.ddual);
+  const double step_size_baumgarte
+      = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
+                                      baumgarte_data_.dual, 
+                                      baumgarte_data_.ddual);
+  const double step_size_complementarity
+      = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
+                                      complementarity_data_.dual, 
+                                      complementarity_data_.ddual);
+  return std::min({step_size_force, step_size_baumgarte, 
+                   step_size_complementarity});
+}
+
+
+inline void ContactComplementarity::updateSlack(const double step_size) { 
+  assert(step_size > 0);
+  assert(step_size <= 1);
+  force_data_.slack.noalias() += step_size * force_data_.dslack;
+  baumgarte_data_.slack.noalias() += step_size * baumgarte_data_.dslack;
+  complementarity_data_.slack.noalias() += step_size * complementarity_data_.dslack;
+}
+
+
+inline void ContactComplementarity::updateDual(const double step_size) {
+  assert(step_size > 0);
+  assert(step_size <= 1);
+  force_data_.dual.noalias() += step_size * force_data_.ddual;
+  baumgarte_data_.dual.noalias() += step_size * baumgarte_data_.ddual;
+  complementarity_data_.dual.noalias() += step_size * complementarity_data_.ddual;
+}
+
+
+inline double ContactComplementarity::costSlackBarrier() const {
+  double cost = 0;
+  cost -= barrier_ * force_data_.slack.array().log().sum();
+  cost -= barrier_ * baumgarte_data_.slack.array().log().sum();
+  cost -= barrier_ * complementarity_data_.slack.array().log().sum();
+  return cost;
+}
+
+
+inline double ContactComplementarity::costSlackBarrier(const double step_size) const {
+  assert(step_size > 0);
+  assert(step_size <= 1);
+  double cost = 0;
+  cost -= barrier_ * (force_data_.slack+step_size*force_data_.dslack).array().log().sum();
+  cost -= barrier_ * (baumgarte_data_.slack+step_size*baumgarte_data_.dslack).array().log().sum();
+  cost -= barrier_ * (complementarity_data_.slack+step_size*complementarity_data_.dslack).array().log().sum();
+  return cost;
 }
 
 

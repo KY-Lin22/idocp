@@ -64,7 +64,7 @@ add_library(
   src/ocp/split_solution.cpp
   src/ocp/split_direction.cpp
   src/ocp/state_equation.cpp
-  # src/ocp/robot_dynamics.cpp
+  src/ocp/robot_dynamics.cpp
   # src/ocp/split_parnmpc.cpp
   # src/ocp/line_search_filter.cpp
   # src/ocp/parnmpc.cpp

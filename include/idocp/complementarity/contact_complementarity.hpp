@@ -51,6 +51,18 @@ public:
   void computeSlackAndDualDirection(const Robot& robot, const double dtau, 
                                     const SplitSolution& s, 
                                     const SplitDirection& d); 
+ 
+  double maxSlackStepSize() const;
+
+  double maxDualStepSize() const;
+
+  void updateSlack(const double step_size);
+
+  void updateDual(const double step_size);
+
+  double costSlackBarrier() const;
+
+  double costSlackBarrier(const double step_size) const;
 
   double residualL1Nrom() const;
 

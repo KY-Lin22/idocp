@@ -23,17 +23,16 @@ protected:
     mu_ = std::abs(Eigen::VectorXd::Random(1)[0]);
     barrier_ = 1.0e-04;
     dtau_ = std::abs(Eigen::VectorXd::Random(1)[0]);
-    fraction_to_boundary_rate_ = std::abs(Eigen::VectorXd::Random(1)[0]);
     const std::vector<int> contact_frames = {14, 24, 34, 44};
     const std::string urdf = "../urdf/anymal/anymal.urdf";
     robot_ = Robot(urdf, contact_frames, 0, 0);
-    contact_force_inequality_ = ContactForceInequality(robot_, mu_, barrier_, fraction_to_boundary_rate_);
+    contact_force_inequality_ = ContactForceInequality(robot_, mu_, barrier_);
   }
 
   virtual void TearDown() {
   }
 
-  double mu_, barrier_, dtau_, fraction_to_boundary_rate_;
+  double mu_, barrier_, dtau_;
   Eigen::VectorXd slack_, dual_, dslack_, ddual_;
   Robot robot_;
   ContactForceInequality contact_force_inequality_;
@@ -41,6 +40,7 @@ protected:
 
 
 TEST_F(FloatingBaseContactForceInequalityTest, isFeasible) {
+  EXPECT_DOUBLE_EQ(contact_force_inequality_.mu(), mu_);
   SplitSolution s(robot_);
   s.f_verbose = - Eigen::VectorXd::Random(7*robot_.num_point_contacts()).array().abs();
   assert(s.f.size() == 3*robot_.num_point_contacts());

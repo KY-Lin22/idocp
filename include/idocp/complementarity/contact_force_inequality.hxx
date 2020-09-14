@@ -5,14 +5,13 @@
 
 namespace idocp {
 
-inline ContactForceInequality::ContactForceInequality(
-    const Robot& robot, const double mu, const double barrier, 
-    const double fraction_to_boundary_rate)
+inline ContactForceInequality::ContactForceInequality(const Robot& robot, 
+                                                      const double mu, 
+                                                      const double barrier)
   : num_point_contacts_(robot.num_point_contacts()),
     dimc_(6*robot.num_point_contacts()),
     mu_(mu), 
-    barrier_(barrier), 
-    fraction_to_boundary_rate_(fraction_to_boundary_rate) {
+    barrier_(barrier) {
   f_rsc_.setZero();
 }
 
@@ -21,8 +20,7 @@ inline ContactForceInequality::ContactForceInequality()
   : num_point_contacts_(0),
     dimc_(0),
     mu_(0), 
-    barrier_(0), 
-    fraction_to_boundary_rate_(0) {
+    barrier_(0) {
   f_rsc_.setZero();
 }
 

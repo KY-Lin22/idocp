@@ -10,14 +10,15 @@ inline RobotDynamics::RobotDynamics(const Robot& robot)
     du_dq_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     du_dv_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     du_da_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
-    du_df_(Eigen::MatrixXd::Zero(robot.dimv(), robot.max_dimf())),
+    du_df_(Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts())),
+    du_df_minimum_(Eigen::MatrixXd::Zero(robot.dimv(), 3*robot.num_point_contacts())),
     Quu_du_dq_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     Quu_du_dv_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     Quu_du_da_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
-    Quu_du_df_(Eigen::MatrixXd::Zero(robot.dimv(), robot.max_dimf())),
+    Quu_du_df_(Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts())),
     has_floating_base_(robot.has_floating_base()),
-    has_active_contacts_(robot.has_active_contacts()),
-    dimf_(robot.dimf()) {
+    has_contacts_(robot.has_contacts()),
+    dimf_(7*robot.num_point_contacts()) {
 }
 
 
@@ -27,12 +28,13 @@ inline RobotDynamics::RobotDynamics()
     du_dv_(),
     du_da_(),
     du_df_(),
+    du_df_minimum_(),
     Quu_du_dq_(),
     Quu_du_dv_(),
     Quu_du_da_(),
     Quu_du_df_(),
     has_floating_base_(false),
-    has_active_contacts_(false),
+    has_contacts_(false),
     dimf_(0) {
 }
 
@@ -45,31 +47,17 @@ inline void RobotDynamics::augmentRobotDynamics(Robot& robot, const double dtau,
                                                 const SplitSolution& s, 
                                                 KKTMatrix& kkt_matrix, 
                                                 KKTResidual& kkt_residual) {
-  setContactStatus(robot);
   linearizeInverseDynamics(robot, s, kkt_residual);
   // augment inverse dynamics
   kkt_residual.la().noalias() += dtau * du_da_.transpose() * s.beta;
-  if (robot.has_active_contacts()) {
-    kkt_residual.lf().noalias() += dtau * du_df_active_().transpose() * s.beta;
+  if (robot.has_contacts()) {
+    kkt_residual.lf().noalias() += dtau * du_df_.transpose() * s.beta;
   }
   kkt_residual.lq().noalias() += dtau * du_dq_.transpose() * s.beta;
   kkt_residual.lv().noalias() += dtau * du_dv_.transpose() * s.beta;
   kkt_residual.lu.noalias() -= dtau * s.beta; 
   // augment floating base constraint
   linearizeFloatingBaseConstraint(robot, dtau, s, kkt_residual);
-  // augment contact constraint
-  if (robot.has_active_contacts()) {
-    linearizeContactConstraint(robot, dtau, kkt_matrix, kkt_residual);
-    kkt_residual.la().noalias() 
-        += kkt_matrix.Ca().topRows(robot.dimf()).transpose() 
-            * s.mu.head(robot.dimf());
-    kkt_residual.lq().noalias()
-        += kkt_matrix.Cq().topRows(robot.dimf()).transpose() 
-            * s.mu.head(robot.dimf());
-    kkt_residual.lv().noalias() 
-        += kkt_matrix.Cv().topRows(robot.dimf()).transpose() 
-            * s.mu.head(robot.dimf());
-  }
 }
 
 
@@ -78,14 +66,13 @@ inline void RobotDynamics::condenseRobotDynamics(Robot& robot,
                                                  const SplitSolution& s, 
                                                  KKTMatrix& kkt_matrix, 
                                                  KKTResidual& kkt_residual) {
-  setContactStatus(robot);
   linearizeInverseDynamics(robot, s, kkt_residual);
   lu_condensed_.noalias() 
       = kkt_residual.lu + kkt_matrix.Quu * kkt_residual.u_res;
   // condense Newton residual
   kkt_residual.la().noalias() = du_da_.transpose() * lu_condensed_;
-  if (robot.has_active_contacts()) {
-    kkt_residual.lf().noalias() = du_df_active_().transpose() * lu_condensed_;
+  if (robot.has_contacts()) {
+    kkt_residual.lf().noalias() = du_df_.transpose() * lu_condensed_;
   }
   kkt_residual.lq().noalias() = du_dq_.transpose() * lu_condensed_;
   kkt_residual.lv().noalias() = du_dv_.transpose() * lu_condensed_;
@@ -93,54 +80,38 @@ inline void RobotDynamics::condenseRobotDynamics(Robot& robot,
   // condense Hessian
   Quu_du_da_.noalias() = kkt_matrix.Quu * du_da_;
   kkt_matrix.Qaa().noalias() = du_da_.transpose() * Quu_du_da_;
-  if (robot.has_active_contacts()) {
-    Quu_du_df_active_().noalias() = kkt_matrix.Quu * du_df_active_();
-    kkt_matrix.Qaf().noalias() = du_da_.transpose() * Quu_du_df_active_(); 
+  if (robot.has_contacts()) {
+    Quu_du_df_.noalias() = kkt_matrix.Quu * du_df_;
+    kkt_matrix.Qaf().noalias() = du_da_.transpose() * Quu_du_df_; 
   }
   Quu_du_dq_.noalias() = kkt_matrix.Quu * du_dq_;
   Quu_du_dv_.noalias() = kkt_matrix.Quu * du_dv_;
   kkt_matrix.Qaq().noalias() = du_da_.transpose() * Quu_du_dq_;
   kkt_matrix.Qav().noalias() = du_da_.transpose() * Quu_du_dv_;
-  if (robot.has_active_contacts()) {
-    kkt_matrix.Qff().noalias() 
-        = du_df_active_().transpose() * Quu_du_df_active_();
-    kkt_matrix.Qfq().noalias() = du_df_active_().transpose() * Quu_du_dq_;
-    kkt_matrix.Qfv().noalias() = du_df_active_().transpose() * Quu_du_dv_;
+  if (robot.has_contacts()) {
+    kkt_matrix.Qff().noalias() = du_df_.transpose() * Quu_du_df_;
+    kkt_matrix.Qfq().noalias() = du_df_.transpose() * Quu_du_dq_;
+    kkt_matrix.Qfv().noalias() = du_df_.transpose() * Quu_du_dv_;
   }
   kkt_matrix.Qqq().noalias() = du_dq_.transpose() * Quu_du_dq_;
   kkt_matrix.Qqv().noalias() = du_dq_.transpose() * Quu_du_dv_;
   kkt_matrix.Qvv().noalias() = du_dv_.transpose() * Quu_du_dv_;
   // condense floating base constraint
   if (robot.has_floating_base()) {
-    kkt_residual.C().template tail<kDimFloatingBase>().noalias() 
+    kkt_residual.C() 
         = dtau * (kkt_residual.u_res.template head<kDimFloatingBase>()
                   + s.u.template head<kDimFloatingBase>());
-    kkt_matrix.Ca().template bottomRows<kDimFloatingBase>() 
-        = dtau * du_da_.template topRows<kDimFloatingBase>();
-    if (robot.has_active_contacts()) {
-      kkt_matrix.Cf().template bottomRows<kDimFloatingBase>() 
-          = dtau * du_df_active_().template topRows<kDimFloatingBase>();
+    kkt_matrix.Ca() = dtau * du_da_.template topRows<kDimFloatingBase>();
+    kkt_residual.la().noalias() += kkt_matrix.Ca().transpose() * s.mu;
+    if (robot.has_contacts()) {
+      kkt_matrix.Cf() = dtau * du_df_.template topRows<kDimFloatingBase>();
+      kkt_residual.lf().noalias() += kkt_matrix.Cf().transpose() * s.mu;
     }
-    kkt_matrix.Cq().template bottomRows<kDimFloatingBase>() 
-        = dtau * du_dq_.template topRows<kDimFloatingBase>();
-    kkt_matrix.Cv().template bottomRows<kDimFloatingBase>() 
-        = dtau * du_dv_.template topRows<kDimFloatingBase>();
-  }
-  if (robot.has_active_contacts()) {
-    linearizeContactConstraint(robot, dtau, kkt_matrix, kkt_residual);
-  }
-  // augment floating base constraint and contact constraint together
-  if (robot.has_floating_base() || robot.has_active_contacts()) {
-    kkt_residual.la().noalias() += kkt_matrix.Ca().transpose() * s.mu_active();
-    if (robot.has_floating_base()) {
-      kkt_residual.lf().noalias() 
-          += kkt_matrix.Cf().template bottomRows<kDimFloatingBase>().transpose() 
-              * s.mu_active().template tail<kDimFloatingBase>();
-      kkt_residual.lu.template head<kDimFloatingBase>().noalias()
-          += dtau * s.mu_active().template tail<kDimFloatingBase>();
-    }
-    kkt_residual.lq().noalias() += kkt_matrix.Cq().transpose() * s.mu_active();
-    kkt_residual.lv().noalias() += kkt_matrix.Cv().transpose() * s.mu_active();
+    kkt_matrix.Cq() = dtau * du_dq_.template topRows<kDimFloatingBase>();
+    kkt_residual.lq().noalias() += kkt_matrix.Cq().transpose() * s.mu;
+    kkt_matrix.Cv() = dtau * du_dv_.template topRows<kDimFloatingBase>();
+    kkt_residual.lv().noalias() += kkt_matrix.Cv().transpose() * s.mu;
+    kkt_residual.lu.template head<kDimFloatingBase>().noalias() += dtau * s.mu;
   }
 }
 
@@ -153,26 +124,22 @@ inline void RobotDynamics::computeCondensedDirection(
   d.du.noalias() += du_dq_ * d.dq();
   d.du.noalias() += du_dv_ * d.dv();
   d.du.noalias() += du_da_ * d.da();
-  if (has_active_contacts_) {
-    d.du.noalias() += du_df_active_() * d.df();
+  if (has_contacts_) {
+    d.du.noalias() += du_df_ * d.df();
   }
   d.dbeta.noalias() = (kkt_residual.lu  + kkt_matrix.Quu * d.du) / dtau;
   if (has_floating_base_) {
-    d.dbeta.template head<kDimFloatingBase>().noalias() 
-        += d.dmu().template tail<kDimFloatingBase>();
+    d.dbeta.template head<kDimFloatingBase>().noalias() += d.dmu();
   }
 }
 
 
-inline double RobotDynamics::violationL1Norm(
-    Robot& robot, const double dtau, const SplitSolution& s, 
-    KKTResidual& kkt_residual) const {
+inline double RobotDynamics::violationL1Norm(const double dtau, 
+                                             const SplitSolution& s,
+                                             KKTResidual& kkt_residual) const {
   double violation = dtau * kkt_residual.u_res.lpNorm<1>();
   if (has_floating_base_) {
     violation += dtau * s.u.template head<kDimFloatingBase>().lpNorm<1>();
-  }
-  if (has_active_contacts_) {
-    violation += kkt_residual.C().head(dimf_).lpNorm<1>();
   }
   return violation;
 }
@@ -181,7 +148,7 @@ inline double RobotDynamics::violationL1Norm(
 inline double RobotDynamics::computeViolationL1Norm(
     Robot& robot, const double dtau, const SplitSolution& s, 
     KKTResidual& kkt_residual) const {
-  if (robot.has_active_contacts()) {
+  if (robot.has_contacts()) {
     robot.setContactForces(s.f);
   }
   robot.RNEA(s.q, s.v, s.a, kkt_residual.u_res);
@@ -190,17 +157,7 @@ inline double RobotDynamics::computeViolationL1Norm(
   if (robot.has_floating_base()) {
     violation += dtau * s.u.template head<kDimFloatingBase>().lpNorm<1>();
   }
-  if (robot.has_active_contacts()) {
-    robot.computeBaumgarteResidual(dtau, kkt_residual.C());
-    violation += kkt_residual.C().head(robot.dimf()).lpNorm<1>();
-  }
   return violation;
-}
-
-
-inline void RobotDynamics::setContactStatus(const Robot& robot) {
-  dimf_ = robot.dimf();
-  has_active_contacts_ = robot.has_active_contacts();
 }
 
 
@@ -226,15 +183,13 @@ inline void RobotDynamics::getControlInputTorquesSensitivitiesWithRespectToState
   assert(da_dq.rows() == Kuv.rows());
   const_cast<Eigen::MatrixBase<MatrixType5>&>(Kuq) = du_dq_;
   const_cast<Eigen::MatrixBase<MatrixType5>&>(Kuq).noalias() += du_da_ * da_dq;
-  if (has_active_contacts_) {
-    const_cast<Eigen::MatrixBase<MatrixType5>&>(Kuq).noalias() 
-        += du_df_active_() * df_dq;
+  if (has_contacts_) {
+    const_cast<Eigen::MatrixBase<MatrixType5>&>(Kuq).noalias() += du_df_ * df_dq;
   }
   const_cast<Eigen::MatrixBase<MatrixType6>&>(Kuv) = du_dv_;
   const_cast<Eigen::MatrixBase<MatrixType6>&>(Kuv).noalias() += du_da_ * da_dv;
-  if (has_active_contacts_) {
-    const_cast<Eigen::MatrixBase<MatrixType6>&>(Kuv).noalias() 
-        += du_df_active_() * df_dv;
+  if (has_contacts_) {
+    const_cast<Eigen::MatrixBase<MatrixType6>&>(Kuv).noalias() += du_df_ * df_dv;
   }
 }
 
@@ -242,25 +197,26 @@ inline void RobotDynamics::getControlInputTorquesSensitivitiesWithRespectToState
 inline void RobotDynamics::linearizeInverseDynamics(Robot& robot, 
                                                     const SplitSolution& s, 
                                                     KKTResidual& kkt_residual) {
-  if (robot.has_active_contacts()) {
+  if (robot.has_contacts()) {
     robot.setContactForces(s.f);
   }
   robot.RNEA(s.q, s.v, s.a, kkt_residual.u_res);
   kkt_residual.u_res.noalias() -= s.u;
   robot.RNEADerivatives(s.q, s.v, s.a, du_dq_, du_dv_, du_da_);
-  if (robot.has_active_contacts()) {
-    robot.dRNEAPartialdFext(du_df_);
+  if (robot.has_contacts()) {
+    robot.dRNEAPartialdFext(du_df_minimum_);
+    for (int i=0; i<robot.num_point_contacts(); ++i) {
+      constexpr int kDimf_verbose = 7;
+      constexpr int kDimf_minimum = 3;
+      du_df_.col(kDimf_verbose*i  )  = du_df_minimum_.col(kDimf_minimum*i  );
+      du_df_.col(kDimf_verbose*i+1)  = - du_df_minimum_.col(kDimf_minimum*i  );
+      du_df_.col(kDimf_verbose*i+2)  = du_df_minimum_.col(kDimf_minimum*i+1);
+      du_df_.col(kDimf_verbose*i+3)  = - du_df_minimum_.col(kDimf_minimum*i+1);
+      du_df_.col(kDimf_verbose*i+4)  = du_df_minimum_.col(kDimf_minimum*i+2);
+      assert(du_df_.col(kDimf_verbose*i+5).isZero());
+      assert(du_df_.col(kDimf_verbose*i+6).isZero());
+    }
   }
-}
-
-
-inline void RobotDynamics::linearizeContactConstraint(
-    Robot& robot, const double dtau, KKTMatrix& kkt_matrix, 
-    KKTResidual& kkt_residual) const {
-  assert(dtau > 0);
-  robot.computeBaumgarteResidual(dtau, kkt_residual.C());
-  robot.computeBaumgarteDerivatives(dtau, kkt_matrix.Cq(), kkt_matrix.Cv(), 
-                                    kkt_matrix.Ca());
 }
 
 
@@ -269,37 +225,10 @@ inline void RobotDynamics::linearizeFloatingBaseConstraint(
     KKTResidual& kkt_residual) const {
   assert(dtau > 0);
   if (robot.has_floating_base()) {
-    kkt_residual.C().template tail<kDimFloatingBase>() 
-        = dtau * s.u.template head<kDimFloatingBase>();
-    kkt_residual.lu.template head<kDimFloatingBase>().noalias()
-          += dtau * s.mu_active().template tail<kDimFloatingBase>();
+    kkt_residual.C() = dtau * s.u.template head<kDimFloatingBase>();
+    kkt_residual.lu.template head<kDimFloatingBase>().noalias() += dtau * s.mu;
   }
 }
-
-
-inline Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic, true> 
-RobotDynamics::du_df_active_() {
-  return du_df_.leftCols(dimf_);
-}
-
-
-inline const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic, true> 
-RobotDynamics::du_df_active_() const {
-  return du_df_.leftCols(dimf_);
-}
-
-
-inline Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic, true> 
-RobotDynamics::Quu_du_df_active_() {
-  return Quu_du_df_.leftCols(dimf_);
-}
-
-
-inline const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic, true> 
-RobotDynamics::Quu_du_df_active_() const {
-  return Quu_du_df_.leftCols(dimf_);
-}
-
 
 } // namespace idocp 
 
