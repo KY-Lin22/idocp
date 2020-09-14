@@ -241,7 +241,9 @@ TEST_F(FloatingBaseBaumgarteInequalityTest, augmentComplementarityCondensedHessi
   robot_.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot_.dimv());
   s.a = Eigen::VectorXd::Random(robot_.dimv());
+  s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.r = Eigen::VectorXd::Random(2*robot_.num_point_contacts()).array().abs();
+  s.set_f_3D();
   const int dimc = 6*robot_.num_point_contacts();
   KKTMatrix kkt_matrix(robot_);
   const Eigen::VectorXd diagonal = Eigen::VectorXd::Random(dimc).array().abs();
@@ -308,11 +310,11 @@ TEST_F(FloatingBaseBaumgarteInequalityTest, augmentComplementarityCondensedHessi
     h_f(6*i+2, 5*i+2) = dtau_;
     h_f(6*i+3, 5*i+3) = dtau_;
     h_f(6*i+4, 5*i+4) = dtau_;
-    h_f(6*i+5, 5*i+0) = - 2 * dtau_ * s.f(3*i+0);
-    h_f(6*i+5, 5*i+1) = 2 * dtau_ * s.f(3*i+0);
-    h_f(6*i+5, 5*i+2) = - 2 * dtau_ * s.f(3*i+1);
-    h_f(6*i+5, 5*i+3) = 2 * dtau_ * s.f(3*i+1);
-    h_f(6*i+5, 5*i+4) = 2 * mu * mu * dtau_ * s.f(3*i+2);
+    h_f(6*i+5, 5*i+0) = - 2 * dtau_ * s.f_3D(3*i+0);
+    h_f(6*i+5, 5*i+1) = 2 * dtau_ * s.f_3D(3*i+0);
+    h_f(6*i+5, 5*i+2) = - 2 * dtau_ * s.f_3D(3*i+1);
+    h_f(6*i+5, 5*i+3) = 2 * dtau_ * s.f_3D(3*i+1);
+    h_f(6*i+5, 5*i+4) = 2 * mu * mu * dtau_ * s.f_3D(3*i+2);
   }
   Eigen::MatrixXd h_x(Eigen::MatrixXd::Zero(dimc, 3*robot_.dimv()+7*robot_.num_point_contacts()));
   h_x.block(0, robot_.dimv(), dimc, 5*robot_.num_point_contacts()) = h_f;
@@ -405,7 +407,7 @@ TEST_F(FloatingBaseBaumgarteInequalityTest, augmentCondensedResidual) {
 
   KKTResidual kkt_residual_ref(robot_);
   kkt_residual_ref.KKT_residual.tail(3*robot_.dimv()+7*robot_.num_point_contacts()) 
-      = g_x.transpose() * condensed_residual;
+      = - g_x.transpose() * condensed_residual;
   EXPECT_TRUE(kkt_residual.la().isApprox(kkt_residual_ref.la()));
   EXPECT_TRUE(kkt_residual.lf().isApprox(kkt_residual_ref.lf()));
   EXPECT_TRUE(kkt_residual.lr().isApprox(kkt_residual_ref.lr()));

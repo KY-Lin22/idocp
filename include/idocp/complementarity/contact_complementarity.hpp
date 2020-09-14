@@ -74,12 +74,15 @@ public:
   double computeSquaredKKTErrorNorm(Robot& robot, const double dtau, 
                                     const SplitSolution& s);
 
+  void set_mu(const double mu);
+
 private:
   int dimc_; 
   double max_complementarity_violation_, barrier_, fraction_to_boundary_rate_;
   ContactForceInequality contact_force_inequality_;
   BaumgarteInequality baumgarte_inequality_;
-  ConstraintComponentData force_data_, baumgarte_data_, complementarity_data_;
+  ConstraintComponentData contact_force_data_, baumgarte_data_, 
+                          complementarity_data_;
   Eigen::VectorXd s_g_, s_h_, g_w_, g_ss_, g_st_, g_tt_, 
                   condensed_force_residual_, condensed_baumgarte_residual_;
 

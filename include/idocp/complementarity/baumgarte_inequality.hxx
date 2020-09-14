@@ -77,12 +77,18 @@ inline void BaumgarteInequality::setSlack(Robot& robot, const double dtau,
   assert(dtau > 0);
   robot.computeBaumgarteResidual(dtau, Baumgarte_residual_); 
   for (int i=0; i<robot.num_point_contacts(); ++i) {
-    data.slack.coeffRef(kDimc*i  ) = dtau * (s.r.coeff(2*i  )+Baumgarte_residual_.coeff(3*i  ));
-    data.slack.coeffRef(kDimc*i+1) = dtau * (s.r.coeff(2*i  )-Baumgarte_residual_.coeff(3*i  ));
-    data.slack.coeffRef(kDimc*i+2) = dtau * (s.r.coeff(2*i+1)+Baumgarte_residual_.coeff(3*i+1));
-    data.slack.coeffRef(kDimc*i+3) = dtau * (s.r.coeff(2*i+1)-Baumgarte_residual_.coeff(3*i+1));
+    data.slack.coeffRef(kDimc*i  ) 
+        = dtau * (s.r.coeff(2*i  )+Baumgarte_residual_.coeff(3*i  ));
+    data.slack.coeffRef(kDimc*i+1) 
+        = dtau * (s.r.coeff(2*i  )-Baumgarte_residual_.coeff(3*i  ));
+    data.slack.coeffRef(kDimc*i+2) 
+        = dtau * (s.r.coeff(2*i+1)+Baumgarte_residual_.coeff(3*i+1));
+    data.slack.coeffRef(kDimc*i+3) 
+        = dtau * (s.r.coeff(2*i+1)-Baumgarte_residual_.coeff(3*i+1));
     data.slack.coeffRef(kDimc*i+4) = dtau * Baumgarte_residual_.coeff(3*i+2);
-    data.slack.coeffRef(kDimc*i+5) = dtau * (s.r.coeff(2*i)*s.r.coeff(2*i) + s.r.coeff(2*i+1)*s.r.coeff(2*i+1));
+    data.slack.coeffRef(kDimc*i+5) 
+        = dtau * (s.r.coeff(2*i)*s.r.coeff(2*i) 
+                    + s.r.coeff(2*i+1)*s.r.coeff(2*i+1));
   }
 }
 
@@ -264,19 +270,19 @@ inline void BaumgarteInequality::augmentCondensedResidual(
   assert(dtau > 0);
   assert(residual.size() == kDimc*robot.num_point_contacts());
   kkt_residual.la().noalias() 
-      += dtau * dBaumgarte_verbose_da_.transpose() * residual;
+      -= dtau * dBaumgarte_verbose_da_.transpose() * residual;
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     kkt_residual.lr().coeffRef(2*i  )
-        += dtau * (residual.coeff(kDimc*i  ) + residual.coeff(kDimc*i+1)
+        -= dtau * (residual.coeff(kDimc*i  ) + residual.coeff(kDimc*i+1)
                     + 2 * s.r.coeff(2*i  ) * residual.coeff(kDimc*i+5));
     kkt_residual.lr().coeffRef(2*i+1)
-        += dtau * (residual.coeff(kDimc*i+2) + residual.coeff(kDimc*i+3)
+        -= dtau * (residual.coeff(kDimc*i+2) + residual.coeff(kDimc*i+3)
                     + 2 * s.r.coeff(2*i+1) * residual.coeff(kDimc*i+5));
   }
   kkt_residual.lq().noalias() 
-      += dtau * dBaumgarte_verbose_dq_.transpose() * residual;
+      -= dtau * dBaumgarte_verbose_dq_.transpose() * residual;
   kkt_residual.lv().noalias() 
-      += dtau * dBaumgarte_verbose_dv_.transpose() * residual;
+      -= dtau * dBaumgarte_verbose_dv_.transpose() * residual;
 }
 
 

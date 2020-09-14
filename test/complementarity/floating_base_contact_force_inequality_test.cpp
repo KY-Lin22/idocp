@@ -191,7 +191,7 @@ TEST_F(FloatingBaseContactForceInequalityTest, augmentCondensedResidual) {
   }
   std::cout << g_f << std::endl;
   Eigen::VectorXd lf_ref(Eigen::VectorXd::Zero(5*robot_.num_point_contacts()));
-  lf_ref = g_f.transpose() * condensed_residual;
+  lf_ref = - g_f.transpose() * condensed_residual;
   EXPECT_TRUE(kkt_residual.lf().isApprox(lf_ref));
 }
 

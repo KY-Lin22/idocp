@@ -61,6 +61,23 @@ TEST_F(FixedBaseContactComplementarityTest, isFeasible) {
 }
 
 
+TEST_F(FixedBaseContactComplementarityTest, setSlackAndDual) {
+  SplitSolution s(robot_);
+  s.q = Eigen::VectorXd::Random(robot_.dimq());
+  robot_.generateFeasibleConfiguration(s.q);
+  s.v = Eigen::VectorXd::Random(robot_.dimv());
+  s.a = Eigen::VectorXd::Random(robot_.dimv());
+  s.f_verbose = - Eigen::VectorXd::Random(7*robot_.num_point_contacts()).array().abs();
+  s.set_f();
+  assert(s.f.size() == 3);
+  assert(s.f_verbose.size() == 7);
+  assert(robot_.num_point_contacts() == 1);
+  s.set_f();
+  contact_complementarity_.setSlackAndDual(robot_, dtau_, s);
+  EXPECT_FALSE(std::isnan(contact_complementarity_.costSlackBarrier()));
+}
+
+
 TEST_F(FixedBaseContactComplementarityTest, computePrimalResidual) {
   SplitSolution s(robot_);
   s.f_verbose = Eigen::VectorXd::Random(7*robot_.num_point_contacts()).array().abs();

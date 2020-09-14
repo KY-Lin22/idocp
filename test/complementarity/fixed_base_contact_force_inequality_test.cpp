@@ -163,7 +163,7 @@ TEST_F(FixedBaseContactForceInequalityTest, augmentCondensedResidual) {
   g_f(5, 4) = 2 * mu_ * mu_ * dtau_ * s.f_3D(2);
   std::cout << g_f << std::endl;
   Eigen::MatrixXd lf_ref(Eigen::VectorXd::Zero(5));
-  lf_ref = g_f.transpose() * condensed_residual;
+  lf_ref = - g_f.transpose() * condensed_residual;
   EXPECT_TRUE(kkt_residual.lf().isApprox(lf_ref));
 }
 

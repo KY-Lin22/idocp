@@ -221,7 +221,9 @@ TEST_F(FixedBaseBaumgarteInequalityTest, augmentComplementarityCondensedHessian)
   robot_.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot_.dimv());
   s.a = Eigen::VectorXd::Random(robot_.dimv());
+  s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.r = Eigen::VectorXd::Random(2*robot_.num_point_contacts()).array().abs();
+  s.set_f_3D();
   KKTMatrix kkt_matrix(robot_);
   const Eigen::VectorXd diagonal = Eigen::VectorXd::Random(6*robot_.num_point_contacts()).array().abs();
   robot_.updateKinematics(s.q, s.v, s.a);
@@ -230,9 +232,7 @@ TEST_F(FixedBaseBaumgarteInequalityTest, augmentComplementarityCondensedHessian)
   const double mu = std::abs(Eigen::VectorXd::Random(1)[0]);
   ContactForceInequality force_inequality(robot_, mu);
   baumgarte_inequality_.augmentDualResidual(robot_, dtau_, s, data, kkt_residual);
-  std::cout << "aaa" << std::endl;
   baumgarte_inequality_.augmentComplementarityCondensedHessian(robot_, dtau_, s, force_inequality, diagonal, kkt_matrix);
-  std::cout << "aaa" << std::endl;
   Eigen::MatrixXd dbaum_dq(Eigen::MatrixXd::Zero(3, robot_.dimv()));
   Eigen::MatrixXd dbaum_dv(Eigen::MatrixXd::Zero(3, robot_.dimv()));
   Eigen::MatrixXd dbaum_da(Eigen::MatrixXd::Zero(3, robot_.dimv()));
@@ -279,11 +279,11 @@ TEST_F(FixedBaseBaumgarteInequalityTest, augmentComplementarityCondensedHessian)
   h_f(2, 2) = dtau_;
   h_f(3, 3) = dtau_;
   h_f(4, 4) = dtau_;
-  h_f(5, 0) = - 2 * dtau_ * s.f(0);
-  h_f(5, 1) = 2 * dtau_ * s.f(0);
-  h_f(5, 2) = - 2 * dtau_ * s.f(1);
-  h_f(5, 3) = 2 * dtau_ * s.f(1);
-  h_f(5, 4) = 2 * mu * mu * dtau_ * s.f(2);
+  h_f(5, 0) = - 2 * dtau_ * s.f_3D(0);
+  h_f(5, 1) = 2 * dtau_ * s.f_3D(0);
+  h_f(5, 2) = - 2 * dtau_ * s.f_3D(1);
+  h_f(5, 3) = 2 * dtau_ * s.f_3D(1);
+  h_f(5, 4) = 2 * mu * mu * dtau_ * s.f_3D(2);
   Eigen::MatrixXd h_x(Eigen::MatrixXd::Zero(6, 3*robot_.dimv()+7));
   h_x.block(0, robot_.dimv(), 6, 5) = h_f;
   std::cout << h_x << std::endl;
@@ -366,7 +366,7 @@ TEST_F(FixedBaseBaumgarteInequalityTest, augmentCondensedResidual) {
 
   KKTResidual kkt_residual_ref(robot_);
   kkt_residual_ref.KKT_residual.tail(3*robot_.dimv()+7*robot_.num_point_contacts()) 
-      = g_x.transpose() * condensed_residual;
+      = - g_x.transpose() * condensed_residual;
   EXPECT_TRUE(kkt_residual.la().isApprox(kkt_residual_ref.la()));
   EXPECT_TRUE(kkt_residual.lf().isApprox(kkt_residual_ref.lf()));
   EXPECT_TRUE(kkt_residual.lr().isApprox(kkt_residual_ref.lr()));
