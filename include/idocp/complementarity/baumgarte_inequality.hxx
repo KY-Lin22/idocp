@@ -5,11 +5,9 @@
 
 namespace idocp {
 
-inline BaumgarteInequality::BaumgarteInequality(const Robot& robot, 
-                                                const double barrier)
+inline BaumgarteInequality::BaumgarteInequality(const Robot& robot)
   : num_point_contacts_(robot.num_point_contacts()),
     dimc_(6*robot.num_point_contacts()),
-    barrier_(barrier), 
     Baumgarte_residual_(Eigen::VectorXd::Zero(3*robot.num_point_contacts())),
     dBaumgarte_dq_(Eigen::MatrixXd::Zero(3*robot.num_point_contacts(), 
                                          robot.dimv())),
@@ -31,7 +29,6 @@ inline BaumgarteInequality::BaumgarteInequality(const Robot& robot,
 inline BaumgarteInequality::BaumgarteInequality() 
   : num_point_contacts_(0),
     dimc_(0),
-    barrier_(0), 
     dBaumgarte_dq_(),
     dBaumgarte_dv_(),
     dBaumgarte_da_(),
@@ -95,7 +92,6 @@ inline void BaumgarteInequality::setSlack(Robot& robot, const double dtau,
         = dtau * (s.f_verbose.coeff(7*i+5)*s.f_verbose.coeff(7*i+5)
                    + s.f_verbose.coeff(7*i+6)*s.f_verbose.coeff(7*i+6));
   }
-  pdipmfunc::SetSlackAndDualPositive(barrier_, data.slack, data.dual);
 }
 
 

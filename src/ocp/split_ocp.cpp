@@ -16,19 +16,22 @@ SplitOCP::SplitOCP(const Robot& robot,
     kkt_matrix_(robot),
     state_equation_(robot),
     robot_dynamics_(robot),
+    contact_complementarity_(robot, 1),
     riccati_gain_(robot),
     riccati_factorizer_(robot),
     riccati_inverter_(robot),
     Ginv_(Eigen::MatrixXd::Zero(
-        robot.dimv()+2*robot.max_dimf()+robot.dim_passive(), 
-        robot.dimv()+2*robot.max_dimf()+robot.dim_passive())),
+        robot.dimv()+7*robot.num_point_contacts()+robot.dim_passive(), 
+        robot.dimv()+7*robot.num_point_contacts()+robot.dim_passive())),
     s_tmp_(robot),
     dimv_(robot.dimv()),
     dimf_(robot.dimf()),
     dimc_(robot.dim_passive()+robot.dimf()),
+    has_floating_base_(robot.has_floating_base()),
+    has_contacts_(robot.has_contacts()),
     use_kinematics_(false) {
   if (cost_->useKinematics() || constraints_->useKinematics() 
-                             || robot.max_dimf() > 0) {
+                             || robot.has_contacts()) {
     use_kinematics_ = true;
   }
 }
@@ -43,6 +46,7 @@ SplitOCP::SplitOCP()
     kkt_matrix_(),
     state_equation_(),
     robot_dynamics_(),
+    contact_complementarity_(),
     riccati_gain_(),
     riccati_factorizer_(),
     riccati_inverter_(),
@@ -51,6 +55,8 @@ SplitOCP::SplitOCP()
     dimv_(0),
     dimf_(0),
     dimc_(0),
+    has_floating_base_(false),
+    has_contacts_(false),
     use_kinematics_(false) {
 }
 
@@ -59,15 +65,22 @@ SplitOCP::~SplitOCP() {
 }
 
 
-bool SplitOCP::isFeasible(const Robot& robot, const SplitSolution& s) {
-  return constraints_->isFeasible(robot, constraints_data_, s);
+bool SplitOCP::isFeasible(Robot& robot, const SplitSolution& s) {
+  if (!contact_complementarity_.isFeasible(robot, s)) {
+    return false;
+  }
+  if (!constraints_->isFeasible(robot, constraints_data_, s)) {
+    return false;
+  }
+  return true;
 }
 
 
-void SplitOCP::initConstraints(const Robot& robot, const int time_step, 
+void SplitOCP::initConstraints(Robot& robot, const int time_step, 
                                const double dtau, const SplitSolution& s) { 
   assert(time_step >= 0);
   assert(dtau > 0);
+  contact_complementarity_.setSlackAndDual(robot, dtau, s);
   constraints_->setSlackAndDual(robot, constraints_data_, dtau, s);
 }
 
@@ -77,9 +90,6 @@ void SplitOCP::linearizeOCP(Robot& robot, const double t, const double dtau,
                             const SplitSolution& s, 
                             const SplitSolution& s_next) {
   assert(dtau > 0);
-  setContactStatus(robot);
-  kkt_residual_.setContactStatus(robot);
-  kkt_matrix_.setContactStatus(robot);
   if (use_kinematics_) {
     robot.updateKinematics(s.q, s.v, s.a);
   }
@@ -95,6 +105,11 @@ void SplitOCP::linearizeOCP(Robot& robot, const double t, const double dtau,
   robot_dynamics_.condenseRobotDynamics(robot, dtau, s, kkt_matrix_, 
                                         kkt_residual_);
   // forms the KKT matrix and KKT residual
+  if (robot.has_contacts()) {
+    contact_complementarity_.computeResidual(robot, dtau, s);
+    contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
+    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, kkt_residual_);
+  }
   cost_->computeStageCostDerivatives(robot, cost_data_, t, dtau, s, 
                                      kkt_residual_);
   constraints_->augmentDualResidual(robot, constraints_data_, dtau, 
@@ -106,10 +121,8 @@ void SplitOCP::linearizeOCP(Robot& robot, const double t, const double dtau,
                                      kkt_matrix_, kkt_residual_);
   riccati_factorizer_.setStateEquationDerivative(kkt_matrix_.Fqq);
   // riccati_factorizer_.setStateEquationDerivativeInverse(kkt_matrix_.Fqq_prev);
-  riccati_gain_.setContactStatus(robot);
-  riccati_inverter_.setContactStatus(robot);
   kkt_matrix_.Qvq() = kkt_matrix_.Qqv().transpose();
-  if (robot.has_active_contacts()) {
+  if (robot.has_contacts()) {
     kkt_matrix_.Qfa() = kkt_matrix_.Qaf().transpose();
   }
 }
@@ -131,13 +144,11 @@ void SplitOCP::backwardRiccatiRecursion(
                                    kkt_residual_.Fq(), kkt_residual_.Fv(), 
                                    riccati_next.sv, kkt_residual_.la());
   // Computes the matrix inversion
-  riccati_inverter_.invert(kkt_matrix_.Qafaf(), kkt_matrix_.Caf(), 
-                           Ginv_active());
+  riccati_inverter_.invert(kkt_matrix_.Qafaf(), kkt_matrix_.Caf(), Ginv_);
   // Computes the state feedback gain and feedforward terms
-  riccati_gain_.computeFeedbackGain(Ginv_active(), kkt_matrix_.Qafqv(), 
+  riccati_gain_.computeFeedbackGain(Ginv_, kkt_matrix_.Qafqv(), 
                                     kkt_matrix_.Cqv());
-  riccati_gain_.computeFeedforward(Ginv_active(), kkt_residual_.laf(), 
-                                   kkt_residual_.C());
+  riccati_gain_.computeFeedforward(Ginv_, kkt_residual_.laf(), kkt_residual_.C());
   // Computes the Riccati factorization matrices
   // Qaq() means Qqa().transpose(). This holds for Qav(), Qfq(), Qfv().
   riccati.Pqq = kkt_matrix_.Qqq();
@@ -159,7 +170,7 @@ void SplitOCP::backwardRiccatiRecursion(
   riccati.sv.noalias() -= dtau * riccati_next.Pqv * kkt_residual_.Fv();
   riccati.sv.noalias() -= riccati_next.Pvv * kkt_residual_.Fv();
   riccati.sv.noalias() -= kkt_matrix_.Qav().transpose() * riccati_gain_.ka();
-  if (dimf_ > 0) {
+  if (has_contacts_) {
     riccati.Pqq.noalias() += riccati_gain_.Kfq().transpose() * kkt_matrix_.Qfq();
     riccati.Pqv.noalias() += riccati_gain_.Kfq().transpose() * kkt_matrix_.Qfv();
     riccati.Pvq.noalias() += riccati_gain_.Kfv().transpose() * kkt_matrix_.Qfq();
@@ -167,7 +178,7 @@ void SplitOCP::backwardRiccatiRecursion(
     riccati.sq.noalias() -= kkt_matrix_.Qfq().transpose() * riccati_gain_.kf();
     riccati.sv.noalias() -= kkt_matrix_.Qfv().transpose() * riccati_gain_.kf();
   }
-  if (dimc_ > 0) {
+  if (has_floating_base_) {
     riccati.Pqq.noalias() += riccati_gain_.Kmuq().transpose() * kkt_matrix_.Cq();
     riccati.Pqv.noalias() += riccati_gain_.Kmuq().transpose() * kkt_matrix_.Cv();
     riccati.Pvq.noalias() += riccati_gain_.Kmuv().transpose() * kkt_matrix_.Cq();
@@ -192,30 +203,36 @@ void SplitOCP::forwardRiccatiRecursion(const double dtau, SplitDirection& d,
 
 
 void SplitOCP::computeCondensedDirection(const Robot& robot, const double dtau, 
+                                         const SplitSolution& s, 
                                          SplitDirection& d) {
   assert(dtau > 0);
-  if (dimf_ > 0) {
+  if (robot.has_contacts()) {
     d.df() = riccati_gain_.kf();
     d.df().noalias() += riccati_gain_.Kfq() * d.dq();
     d.df().noalias() += riccati_gain_.Kfv() * d.dv();
   }
-  if (dimc_ > 0) {
+  if (robot.has_floating_base()) {
     d.dmu() = riccati_gain_.kmu();
     d.dmu().noalias() += riccati_gain_.Kmuq() * d.dq();
     d.dmu().noalias() += riccati_gain_.Kmuv() * d.dv();
   }
   robot_dynamics_.computeCondensedDirection(dtau, kkt_matrix_, kkt_residual_, d);
+  contact_complementarity_.computeSlackAndDualDirection(robot, dtau, s, d);
   constraints_->computeSlackAndDualDirection(robot, constraints_data_, dtau, d);
 }
 
  
 double SplitOCP::maxPrimalStepSize() {
-  return constraints_->maxSlackStepSize(constraints_data_);
+  const double max_step_size1 = contact_complementarity_.maxSlackStepSize();
+  const double max_step_size2 = constraints_->maxSlackStepSize(constraints_data_);
+  return std::min(max_step_size1, max_step_size2);
 }
 
 
 double SplitOCP::maxDualStepSize() {
-  return constraints_->maxDualStepSize(constraints_data_);
+  const double max_step_size1 = contact_complementarity_.maxDualStepSize();
+  const double max_step_size2 = constraints_->maxDualStepSize(constraints_data_);
+  return std::min(max_step_size1, max_step_size2);
 }
 
 
@@ -226,10 +243,12 @@ std::pair<double, double> SplitOCP::costAndViolation(Robot& robot,
   assert(dtau > 0);
   double cost = 0;
   cost += cost_->l(robot, cost_data_, t, dtau, s);
+  cost += contact_complementarity_.costSlackBarrier();
   cost += constraints_->costSlackBarrier(constraints_data_);
   double violation = 0;
   violation += state_equation_.violationL1Norm(kkt_residual_);
-  violation += robot_dynamics_.violationL1Norm(robot, dtau, s, kkt_residual_);
+  violation += robot_dynamics_.violationL1Norm(dtau, s, kkt_residual_);
+  violation += contact_complementarity_.residualL1Nrom();
   violation += constraints_->residualL1Nrom(robot, constraints_data_, dtau, s);
   return std::make_pair(cost, violation);
 }
@@ -243,8 +262,9 @@ std::pair<double, double> SplitOCP::costAndViolation(
   assert(step_size <= 1);
   assert(dtau > 0);
   s_tmp_.a = s.a + step_size * d.da();
-  if (robot.has_active_contacts()) {
-    s_tmp_.f_active() = s.f_active() + step_size * d.df();
+  if (robot.has_contacts()) {
+    s_tmp_.f_verbose = s.f_verbose + step_size * d.df();
+    s_tmp_.set_f();
     robot.setContactForces(s_tmp_.f);
   }
   robot.integrateConfiguration(s.q, d.dq(), step_size, s_tmp_.q);
@@ -255,6 +275,7 @@ std::pair<double, double> SplitOCP::costAndViolation(
   }
   double cost = 0;
   cost += cost_->l(robot, cost_data_, t, dtau, s_tmp_);
+  cost += contact_complementarity_.costSlackBarrier(step_size);
   cost += constraints_->costSlackBarrier(constraints_data_, step_size);
   double violation = 0;
   violation += state_equation_.computeForwardEulerViolationL1Norm(
@@ -262,6 +283,7 @@ std::pair<double, double> SplitOCP::costAndViolation(
       d_next.dq(), d_next.dv(), kkt_residual_);
   violation += robot_dynamics_.computeViolationL1Norm(robot, dtau, s_tmp_, 
                                                       kkt_residual_);
+  violation += contact_complementarity_.computeResidualL1Nrom(robot, dtau, s_tmp_);
   violation += constraints_->residualL1Nrom(robot, constraints_data_, dtau, 
                                             s_tmp_);
   return std::make_pair(cost, violation);
@@ -271,6 +293,7 @@ std::pair<double, double> SplitOCP::costAndViolation(
 void SplitOCP::updateDual(const double step_size) {
   assert(step_size > 0);
   assert(step_size <= 1);
+  contact_complementarity_.updateDual(step_size);
   constraints_->updateDual(constraints_data_, step_size);
 }
 
@@ -289,10 +312,16 @@ void SplitOCP::updatePrimal(Robot& robot, const double step_size,
   robot.integrateConfiguration(d.dq(), step_size, s.q);
   s.v.noalias() += step_size * d.dv();
   s.a.noalias() += step_size * d.da();
-  s.f_active().noalias() += step_size * d.df();
+  if (robot.has_contacts()) {
+    s.f_verbose.noalias() += step_size * d.df();
+    s.set_f();
+  }
   s.u.noalias() += step_size * d.du;
   s.beta.noalias() += step_size * d.dbeta;
-  s.mu_active().noalias() += step_size * d.dmu();
+  if (robot.has_floating_base()) {
+    s.mu.noalias() += step_size * d.dmu();
+  }
+  contact_complementarity_.updateSlack(step_size);
   constraints_->updateSlack(constraints_data_, step_size);
 }
 
@@ -313,8 +342,9 @@ double SplitOCP::condensedSquaredKKTErrorNorm(Robot& robot, const double t,
                                               const double dtau, 
                                               const SplitSolution& s) {
   assert(dtau > 0);
-  double error = kkt_residual_.KKT_residual().squaredNorm();
+  double error = kkt_residual_.KKT_residual.squaredNorm();
   error += constraints_->squaredKKTErrorNorm(robot, constraints_data_, dtau, s);
+  error += contact_complementarity_.squaredKKTErrorNorm();
   return error;
 }
 
@@ -325,8 +355,6 @@ double SplitOCP::computeSquaredKKTErrorNorm(Robot& robot, const double t,
                                             const SplitSolution& s,
                                             const SplitSolution& s_next) {
   assert(dtau > 0);
-  kkt_matrix_.setContactStatus(robot);
-  kkt_residual_.setContactStatus(robot);
   kkt_residual_.setZeroMinimum();
   if (use_kinematics_) {
     robot.updateKinematics(s.q, s.v, s.a);
@@ -342,8 +370,12 @@ double SplitOCP::computeSquaredKKTErrorNorm(Robot& robot, const double t,
                                         kkt_matrix_, kkt_residual_);
   robot_dynamics_.augmentRobotDynamics(robot, dtau, s, kkt_matrix_, 
                                        kkt_residual_);
+  if (robot.has_contacts()) {
+    contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
+  }
   double error = kkt_residual_.squaredKKTErrorNorm(dtau);
   error += constraints_->squaredKKTErrorNorm(robot, constraints_data_, dtau, s);
+  error += contact_complementarity_.computeSquaredKKTErrorNorm(robot, dtau, s);
   return error;
 }
 

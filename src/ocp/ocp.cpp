@@ -27,8 +27,7 @@ OCP::OCP(const Robot& robot, const std::shared_ptr<CostFunction>& cost,
     primal_step_sizes_(Eigen::VectorXd::Zero(N)),
     dual_step_sizes_(Eigen::VectorXd::Zero(N)),
     costs_(Eigen::VectorXd::Zero(N+1)), 
-    violations_(Eigen::VectorXd::Zero(N)),
-    contact_sequence_(N, std::vector<bool>(robot.max_point_contacts(), false)) {
+    violations_(Eigen::VectorXd::Zero(N)) {
   assert(T > 0);
   assert(N > 0);
   assert(num_proc > 0);
@@ -57,8 +56,7 @@ OCP::OCP()
     primal_step_sizes_(),
     dual_step_sizes_(),
     costs_(), 
-    violations_(),
-    contact_sequence_() {
+    violations_() {
 }
 
 
@@ -74,13 +72,11 @@ void OCP::updateSolution(const double t, const Eigen::VectorXd& q,
   for (int i=0; i<=N_; ++i) {
     if (i == 0) {
       const int robot_id = omp_get_thread_num();
-      robots_[robot_id].setContactStatus(contact_sequence_[i]);
       split_ocps_[i].linearizeOCP(robots_[robot_id], t+i*dtau_, dtau_, q,
                                   s_[i], s_[i+1]);
     }
     else if (i < N_) {
       const int robot_id = omp_get_thread_num();
-      robots_[robot_id].setContactStatus(contact_sequence_[i]);
       split_ocps_[i].linearizeOCP(robots_[robot_id], t+i*dtau_, dtau_, 
                                   s_[i-1].q, s_[i], s_[i+1]);
     }
@@ -100,7 +96,7 @@ void OCP::updateSolution(const double t, const Eigen::VectorXd& q,
   #pragma omp parallel for num_threads(num_proc_)
   for (int i=0; i<N_; ++i) {
     const int robot_id = omp_get_thread_num();
-    split_ocps_[i].computeCondensedDirection(robots_[robot_id], dtau_, d_[i]);
+    split_ocps_[i].computeCondensedDirection(robots_[robot_id], dtau_, s_[i], d_[i]);
     primal_step_sizes_.coeffRef(i) = split_ocps_[i].maxPrimalStepSize();
     dual_step_sizes_.coeffRef(i) = split_ocps_[i].maxDualStepSize();
   }
@@ -132,7 +128,6 @@ void OCP::updateSolution(const double t, const Eigen::VectorXd& q,
       for (int i=0; i<=N_; ++i) {
         if (i < N_) {
           const int robot_id = omp_get_thread_num();
-          robots_[robot_id].setContactStatus(contact_sequence_[i]);
           const std::pair<double, double> filter_pair
               = split_ocps_[i].costAndViolation(robots_[robot_id], 
                                                 primal_step_size, t+i*dtau_, 
@@ -246,32 +241,12 @@ bool OCP::setStateTrajectory(const Eigen::VectorXd& q0,
 
 void OCP::setContactSequence(
     const std::vector<std::vector<bool>>& contact_sequence) {
-  if (contact_sequence.size() != N_) {
-    std::cout << "invalid number of the contact sequence: it must be " 
-              << N_ << std::endl;
-    return;
-  }
-  for (int i=0; i<N_; ++i) {
-    if (contact_sequence[i].size() != robots_[0].max_point_contacts()) {
-      std::cout << "invalid dimension of the contact sequence at time step" 
-                << i << ": it must be " << robots_[0].max_point_contacts() 
-                << std::endl;
-      return;
-    }
-  }
-  contact_sequence_ = contact_sequence;
-  #pragma omp parallel for num_threads(num_proc_)
-  for (int i=0; i<N_; ++i) {
-    const int robot_id = omp_get_thread_num();
-    robots_[robot_id].setContactStatus(contact_sequence_[i]);
-    s_[i].setContactStatus(robots_[robot_id]);
-  }
 }
 
 
 void OCP::setContactPoint(
     const std::vector<Eigen::Vector3d>& contact_points) {
-  assert(contact_points.size() == robots_[0].max_point_contacts());
+  assert(contact_points.size() == robots_[0].num_point_contacts());
   #pragma omp parallel for num_threads(num_proc_)
   for (int i=0; i<robots_.size(); ++i) {
     robots_[i].setContactPoints(contact_points);
@@ -302,7 +277,6 @@ double OCP::KKTError(const double t) {
   for (int i=0; i<=N_; ++i) {
     const int robot_id = omp_get_thread_num();
     if (i < N_-1) {
-      robots_[robot_id].setContactStatus(contact_sequence_[i]);
       error(i) = split_ocps_[i].condensedSquaredKKTErrorNorm(
           robots_[robot_id], t+(i+1)*dtau_, dtau_, s_[i]);
     }
@@ -324,12 +298,10 @@ double OCP::computeKKTError(const double t, const Eigen::VectorXd& q,
   for (int i=0; i<=N_; ++i) {
     const int robot_id = omp_get_thread_num();
     if (i == 0) {
-      robots_[robot_id].setContactStatus(contact_sequence_[i]);
       error(i) = split_ocps_[i].computeSquaredKKTErrorNorm(
           robots_[robot_id], t+(i+1)*dtau_, dtau_, q, s_[i], s_[i+1]);
     }
     else if (i < N_) {
-      robots_[robot_id].setContactStatus(contact_sequence_[i]);
       error(i) = split_ocps_[i].computeSquaredKKTErrorNorm(
           robots_[robot_id], t+(i+1)*dtau_, dtau_, s_[i-1].q, s_[i], s_[i+1]);
     }
@@ -372,7 +344,6 @@ void OCP::initConstraints() {
   #pragma omp parallel for num_threads(num_proc_)
   for (int i=0; i<N_; ++i) {
     const int robot_id = omp_get_thread_num();
-    robots_[robot_id].setContactStatus(contact_sequence_[i]);
     split_ocps_[i].initConstraints(robots_[robot_id], i, dtau_, s_[i]);
   }
 }

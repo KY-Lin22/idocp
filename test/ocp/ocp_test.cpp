@@ -44,65 +44,59 @@ protected:
 };
 
 
-TEST_F(OCPTest, updateSolutionFixedBaseWithoutContact) {
-  Robot robot(fixed_base_urdf_);
-  std::random_device rnd;
-  auto cost = std::make_shared<CostFunction>();
-  auto joint_cost = std::make_shared<JointSpaceCost>(robot);
-  auto contact_cost = std::make_shared<ContactCost>(robot);
-  const Eigen::VectorXd q_weight = Eigen::VectorXd::Constant(robot.dimv(), 10);
-  const Eigen::VectorXd qf_weight = Eigen::VectorXd::Constant(robot.dimv(), 10);
-  Eigen::VectorXd q_ref = Eigen::VectorXd::Random(robot.dimq());
-  robot.generateFeasibleConfiguration(q_ref);
-  const Eigen::VectorXd v_weight = Eigen::VectorXd::Constant(robot.dimv(), 1);
-  const Eigen::VectorXd vf_weight = Eigen::VectorXd::Constant(robot.dimv(), 1);
-  const Eigen::VectorXd v_ref = Eigen::VectorXd::Random(robot.dimv());
-  const Eigen::VectorXd a_weight = Eigen::VectorXd::Constant(robot.dimv(), 0.1);
-  const Eigen::VectorXd a_ref = Eigen::VectorXd::Random(robot.dimv());
-  const Eigen::VectorXd u_weight = Eigen::VectorXd::Constant(robot.dimv(), 0.01);
-  const Eigen::VectorXd u_ref = Eigen::VectorXd::Zero(robot.dimv());
-  const Eigen::VectorXd f_weight = Eigen::VectorXd::Constant(robot.max_dimf(), 0.01);
-  const Eigen::VectorXd f_ref = Eigen::VectorXd::Random(robot.max_dimf());
-  joint_cost->set_q_weight(q_weight);
-  joint_cost->set_qf_weight(qf_weight);
-  joint_cost->set_q_ref(q_ref);
-  joint_cost->set_v_weight(v_weight);
-  joint_cost->set_vf_weight(vf_weight);
-  joint_cost->set_v_ref(v_ref);
-  joint_cost->set_a_weight(a_weight);
-  joint_cost->set_a_ref(a_ref);
-  joint_cost->set_u_weight(u_weight);
-  joint_cost->set_u_ref(u_ref);
-  contact_cost->set_f_weight(f_weight);
-  contact_cost->set_f_ref(f_ref);
-  cost->push_back(joint_cost);
-  cost->push_back(contact_cost);
-  auto constraints = std::make_shared<Constraints>();
-  auto joint_lower_limit = std::make_shared<JointPositionLowerLimit>(robot);
-  auto joint_upper_limit = std::make_shared<JointPositionUpperLimit>(robot);
-  auto velocity_lower_limit = std::make_shared<JointVelocityLowerLimit>(robot);
-  auto velocity_upper_limit = std::make_shared<JointVelocityUpperLimit>(robot);
-  constraints->push_back(joint_upper_limit); 
-  constraints->push_back(joint_lower_limit);
-  constraints->push_back(velocity_lower_limit); 
-  constraints->push_back(velocity_upper_limit);
-  Eigen::VectorXd q = Eigen::VectorXd::Zero(robot.dimq());
-  robot.generateFeasibleConfiguration(q);
-  Eigen::VectorXd v = Eigen::VectorXd::Random(robot.dimv());
-  OCP ocp(robot, cost, constraints, T_, N_, 1);
-  OCP ocp_ref(robot, cost, constraints, T_, N_, 2);
-  EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
-  EXPECT_DOUBLE_EQ(ocp.computeKKTError(t_, q, v), ocp_ref.computeKKTError(t_, q, v));
-  EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
-  ocp.updateSolution(t_, q, v, false);
-  ocp_ref.updateSolution(t_, q, v, false);
-  EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
-  EXPECT_DOUBLE_EQ(ocp.computeKKTError(t_, q, v), ocp_ref.computeKKTError(t_, q, v));
-  ocp.updateSolution(t_, q, v, true);
-  ocp_ref.updateSolution(t_, q, v, true);
-  EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
-  EXPECT_DOUBLE_EQ(ocp.computeKKTError(t_, q, v), ocp_ref.computeKKTError(t_, q, v));
-}
+// TEST_F(OCPTest, updateSolutionFixedBaseWithoutContact) {
+//   Robot robot(fixed_base_urdf_);
+//   std::random_device rnd;
+//   auto cost = std::make_shared<CostFunction>();
+//   auto joint_cost = std::make_shared<JointSpaceCost>(robot);
+//   const Eigen::VectorXd q_weight = Eigen::VectorXd::Constant(robot.dimv(), 10);
+//   const Eigen::VectorXd qf_weight = Eigen::VectorXd::Constant(robot.dimv(), 10);
+//   Eigen::VectorXd q_ref = Eigen::VectorXd::Random(robot.dimq());
+//   robot.generateFeasibleConfiguration(q_ref);
+//   const Eigen::VectorXd v_weight = Eigen::VectorXd::Constant(robot.dimv(), 1);
+//   const Eigen::VectorXd vf_weight = Eigen::VectorXd::Constant(robot.dimv(), 1);
+//   const Eigen::VectorXd v_ref = Eigen::VectorXd::Random(robot.dimv());
+//   const Eigen::VectorXd a_weight = Eigen::VectorXd::Constant(robot.dimv(), 0.1);
+//   const Eigen::VectorXd a_ref = Eigen::VectorXd::Random(robot.dimv());
+//   const Eigen::VectorXd u_weight = Eigen::VectorXd::Constant(robot.dimv(), 0.01);
+//   const Eigen::VectorXd u_ref = Eigen::VectorXd::Zero(robot.dimv());
+//   joint_cost->set_q_weight(q_weight);
+//   joint_cost->set_qf_weight(qf_weight);
+//   joint_cost->set_q_ref(q_ref);
+//   joint_cost->set_v_weight(v_weight);
+//   joint_cost->set_vf_weight(vf_weight);
+//   joint_cost->set_v_ref(v_ref);
+//   joint_cost->set_a_weight(a_weight);
+//   joint_cost->set_a_ref(a_ref);
+//   joint_cost->set_u_weight(u_weight);
+//   joint_cost->set_u_ref(u_ref);
+//   cost->push_back(joint_cost);
+//   auto constraints = std::make_shared<Constraints>();
+//   auto joint_lower_limit = std::make_shared<JointPositionLowerLimit>(robot);
+//   auto joint_upper_limit = std::make_shared<JointPositionUpperLimit>(robot);
+//   auto velocity_lower_limit = std::make_shared<JointVelocityLowerLimit>(robot);
+//   auto velocity_upper_limit = std::make_shared<JointVelocityUpperLimit>(robot);
+//   constraints->push_back(joint_upper_limit); 
+//   constraints->push_back(joint_lower_limit);
+//   constraints->push_back(velocity_lower_limit); 
+//   constraints->push_back(velocity_upper_limit);
+//   Eigen::VectorXd q = Eigen::VectorXd::Zero(robot.dimq());
+//   robot.generateFeasibleConfiguration(q);
+//   Eigen::VectorXd v = Eigen::VectorXd::Random(robot.dimv());
+//   OCP ocp(robot, cost, constraints, T_, N_, 1);
+//   OCP ocp_ref(robot, cost, constraints, T_, N_, 2);
+//   EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
+//   EXPECT_DOUBLE_EQ(ocp.computeKKTError(t_, q, v), ocp_ref.computeKKTError(t_, q, v));
+//   EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
+//   ocp.updateSolution(t_, q, v, false);
+//   ocp_ref.updateSolution(t_, q, v, false);
+//   EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
+//   EXPECT_DOUBLE_EQ(ocp.computeKKTError(t_, q, v), ocp_ref.computeKKTError(t_, q, v));
+//   ocp.updateSolution(t_, q, v, true);
+//   ocp_ref.updateSolution(t_, q, v, true);
+//   EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
+//   EXPECT_DOUBLE_EQ(ocp.computeKKTError(t_, q, v), ocp_ref.computeKKTError(t_, q, v));
+// }
 
 
 TEST_F(OCPTest, updateSolutionFixedBaseWithContact) {
@@ -112,11 +106,9 @@ TEST_F(OCPTest, updateSolutionFixedBaseWithContact) {
   Robot robot(fixed_base_urdf_, contact_frames, baum_a, baum_b);
   std::random_device rnd;
   std::vector<bool> contact_status = {rnd()%2==0};
-  robot.setContactStatus(contact_status);
   std::vector<std::vector<bool>> contact_sequence = std::vector<std::vector<bool>>(N_, contact_status);
   auto cost = std::make_shared<CostFunction>();
   auto joint_cost = std::make_shared<JointSpaceCost>(robot);
-  auto contact_cost = std::make_shared<ContactCost>(robot);
   const Eigen::VectorXd q_weight = Eigen::VectorXd::Constant(robot.dimv(), 10);
   const Eigen::VectorXd qf_weight = Eigen::VectorXd::Constant(robot.dimv(), 10);
   Eigen::VectorXd q_ref = Eigen::VectorXd::Random(robot.dimq());
@@ -128,8 +120,6 @@ TEST_F(OCPTest, updateSolutionFixedBaseWithContact) {
   const Eigen::VectorXd a_ref = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd u_weight = Eigen::VectorXd::Zero(robot.dimv());
   const Eigen::VectorXd u_ref = Eigen::VectorXd::Zero(robot.dimv());
-  const Eigen::VectorXd f_weight = Eigen::VectorXd::Constant(robot.max_dimf(), 0.01);
-  const Eigen::VectorXd f_ref = Eigen::VectorXd::Random(robot.max_dimf());
   joint_cost->set_q_weight(q_weight);
   joint_cost->set_qf_weight(qf_weight);
   joint_cost->set_q_ref(q_ref);
@@ -140,10 +130,7 @@ TEST_F(OCPTest, updateSolutionFixedBaseWithContact) {
   joint_cost->set_a_ref(a_ref);
   joint_cost->set_u_weight(u_weight);
   joint_cost->set_u_ref(u_ref);
-  contact_cost->set_f_weight(f_weight);
-  contact_cost->set_f_ref(f_ref);
   cost->push_back(joint_cost);
-  cost->push_back(contact_cost);
   auto constraints = std::make_shared<Constraints>();
   auto joint_lower_limit = std::make_shared<JointPositionLowerLimit>(robot);
   auto joint_upper_limit = std::make_shared<JointPositionUpperLimit>(robot);
@@ -157,9 +144,7 @@ TEST_F(OCPTest, updateSolutionFixedBaseWithContact) {
   robot.generateFeasibleConfiguration(q);
   Eigen::VectorXd v = Eigen::VectorXd::Random(robot.dimv());
   OCP ocp(robot, cost, constraints, T_, N_, 1);
-  ocp.setContactSequence(contact_sequence);
   OCP ocp_ref(robot, cost, constraints, T_, N_, 2);
-  ocp_ref.setContactSequence(contact_sequence);
   EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
   EXPECT_DOUBLE_EQ(ocp.computeKKTError(t_, q, v), ocp_ref.computeKKTError(t_, q, v));
   EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
@@ -185,11 +170,9 @@ TEST_F(OCPTest, floating_base) {
   for (int i=0; i<contact_frames.size(); ++i) {
     contact_status.push_back(rnd()%2==0);
   }
-  robot.setContactStatus(contact_status);
   std::vector<std::vector<bool>> contact_sequence = std::vector<std::vector<bool>>(N_, contact_status);
   std::shared_ptr<CostFunction> cost = std::make_shared<CostFunction>();
   std::shared_ptr<JointSpaceCost> joint_cost = std::make_shared<JointSpaceCost>(robot);
-  std::shared_ptr<ContactCost> contact_cost = std::make_shared<ContactCost>(robot);
   const Eigen::VectorXd q_weight = Eigen::VectorXd::Constant(robot.dimv(), 10);
   const Eigen::VectorXd qf_weight = Eigen::VectorXd::Constant(robot.dimv(), 10);
   Eigen::VectorXd q_ref = Eigen::VectorXd::Random(robot.dimq());
@@ -201,8 +184,6 @@ TEST_F(OCPTest, floating_base) {
   const Eigen::VectorXd a_ref = Eigen::VectorXd::Random(robot.dimv());
   const Eigen::VectorXd u_weight = Eigen::VectorXd::Zero(robot.dimv());
   const Eigen::VectorXd u_ref = Eigen::VectorXd::Constant(robot.dimv(), 0.1);
-  const Eigen::VectorXd f_weight = Eigen::VectorXd::Constant(robot.max_dimf(), 0.01);
-  const Eigen::VectorXd f_ref = Eigen::VectorXd::Random(robot.max_dimf());
   joint_cost->set_q_weight(q_weight);
   joint_cost->set_qf_weight(qf_weight);
   joint_cost->set_q_ref(q_ref);
@@ -213,10 +194,7 @@ TEST_F(OCPTest, floating_base) {
   joint_cost->set_a_ref(a_ref);
   joint_cost->set_u_weight(u_weight);
   joint_cost->set_u_ref(u_ref);
-  contact_cost->set_f_weight(f_weight);
-  contact_cost->set_f_ref(f_ref);
   cost->push_back(joint_cost);
-  cost->push_back(contact_cost);
   auto constraints = std::make_shared<Constraints>();
   auto joint_lower_limit = std::make_shared<JointPositionLowerLimit>(robot);
   auto joint_upper_limit = std::make_shared<JointPositionUpperLimit>(robot);
@@ -230,9 +208,7 @@ TEST_F(OCPTest, floating_base) {
   robot.generateFeasibleConfiguration(q);
   Eigen::VectorXd v = Eigen::VectorXd::Random(robot.dimv());
   OCP ocp(robot, cost, constraints, T_, N_, 1);
-  ocp.setContactSequence(contact_sequence);
   OCP ocp_ref(robot, cost, constraints, T_, N_, 2);
-  ocp_ref.setContactSequence(contact_sequence);
   EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));
   EXPECT_DOUBLE_EQ(ocp.computeKKTError(t_, q, v), ocp_ref.computeKKTError(t_, q, v));
   EXPECT_DOUBLE_EQ(ocp.KKTError(t_), ocp_ref.KKTError(t_));

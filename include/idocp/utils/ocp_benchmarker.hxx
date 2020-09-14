@@ -19,7 +19,7 @@ inline OCPBenchmarker<OCPType>::OCPBenchmarker(
     ocp_(robot, cost, constraints, T, N, num_proc),
     dimq_(robot.dimq()),
     dimv_(robot.dimv()),
-    max_dimf_(robot.max_dimf()),
+    dimf_(robot.dimf()),
     N_(N),
     num_proc_(num_proc),
     T_(T),
@@ -33,7 +33,7 @@ inline OCPBenchmarker<OCPType>::OCPBenchmarker()
     ocp_(),
     dimq_(0),
     dimv_(0),
-    max_dimf_(0),
+    dimf_(0),
     N_(0),
     num_proc_(0),
     T_(0),
@@ -85,7 +85,7 @@ inline void OCPBenchmarker<OCPType>::testCPUTime(const double t,
   std::cout << "Test CPU time of " << benchmark_name_ << std::endl;
   std::cout << "robot.dimq() = " << dimq_ << std::endl;
   std::cout << "robot.dimv() = " << dimv_ << std::endl;
-  std::cout << "robot.max_dimf() = " << max_dimf_ << std::endl;
+  std::cout << "robot.dimf() = " << dimf_ << std::endl;
   std::cout << "N (number of stages) = " << N_ << std::endl;
   if (line_search) {
     std::cout << "Line search is enable" << std::endl;
@@ -117,7 +117,7 @@ inline void OCPBenchmarker<OCPType>::testConvergence(const double t,
   std::cout << "Test convergence of " << benchmark_name_ << std::endl;
   std::cout << "robot.dimq() = " << dimq_ << std::endl;
   std::cout << "robot.dimv() = " << dimv_ << std::endl;
-  std::cout << "robot.max_dimf() = " << max_dimf_ << std::endl;
+  std::cout << "robot.dimf() = " << dimf_ << std::endl;
   std::cout << "N (number of stages) = " << N_ << std::endl;
   std::cout << "q = " << q.transpose() << std::endl;
   std::cout << "v = " << v.transpose() << std::endl;

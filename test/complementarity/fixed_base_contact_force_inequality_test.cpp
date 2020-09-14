@@ -21,18 +21,17 @@ protected:
   virtual void SetUp() {
     srand((unsigned int) time(0));
     mu_ = std::abs(Eigen::VectorXd::Random(1)[0]);
-    barrier_ = 1.0e-04;
     dtau_ = std::abs(Eigen::VectorXd::Random(1)[0]);
     const std::vector<int> contact_frames = {18};
     const std::string urdf = "../urdf/iiwa14/iiwa14.urdf";
     robot_ = Robot(urdf, contact_frames, 0, 0);
-    contact_force_inequality_ = ContactForceInequality(robot_, mu_, barrier_);
+    contact_force_inequality_ = ContactForceInequality(robot_, mu_);
   }
 
   virtual void TearDown() {
   }
 
-  double mu_, barrier_, dtau_;
+  double mu_, dtau_;
   Eigen::VectorXd slack_, dual_, dslack_, ddual_;
   Robot robot_;
   ContactForceInequality contact_force_inequality_;

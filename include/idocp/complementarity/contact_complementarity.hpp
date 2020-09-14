@@ -20,7 +20,7 @@ public:
 
   ContactComplementarity(const Robot& robot, const double mu,  
                          const double max_complementarity_violation=1.0e-04, 
-                         const double barrier=1.0e-04,
+                         const double barrier=1.0e-08,
                          const double fraction_to_boundary_rate=0.995);
 
   ContactComplementarity();

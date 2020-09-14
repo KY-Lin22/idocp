@@ -17,7 +17,7 @@ class BaumgarteInequality {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  BaumgarteInequality(const Robot& robot, const double barrier);
+  BaumgarteInequality(const Robot& robot);
 
   BaumgarteInequality();
 
@@ -70,7 +70,6 @@ private:
   static constexpr int kDimc = 6;
   static constexpr int kDimf_verbose = 7;
   int num_point_contacts_, dimc_; 
-  double barrier_;
   Eigen::VectorXd Baumgarte_residual_;
   Eigen::MatrixXd dBaumgarte_dq_, dBaumgarte_dv_, dBaumgarte_da_,
                   dBaumgarte_verbose_dq_, dBaumgarte_verbose_dv_, 

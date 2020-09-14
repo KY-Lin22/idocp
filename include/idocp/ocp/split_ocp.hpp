@@ -16,6 +16,7 @@
 #include "idocp/constraints/constraints.hpp"
 #include "idocp/ocp/state_equation.hpp"
 #include "idocp/ocp/robot_dynamics.hpp"
+#include "idocp/complementarity/contact_complementarity.hpp"
 #include "idocp/ocp/riccati_factorization.hpp"
 #include "idocp/ocp/riccati_gain.hpp"
 #include "idocp/ocp/riccati_matrix_factorizer.hpp"
@@ -76,7 +77,7 @@ public:
   /// @param[in] robot Robot model. Must be initialized by URDF or XML.
   /// @param[in] s Split solution of this stage.
   ///
-  bool isFeasible(const Robot& robot, const SplitSolution& s);
+  bool isFeasible(Robot& robot, const SplitSolution& s);
 
   ///
   /// @brief Initialize the constraints, i.e., set slack and dual variables. 
@@ -85,8 +86,8 @@ public:
   /// @param[in] dtau Length of the discretization of the horizon.
   /// @param[in] s Split solution of this stage.
   ///
-  void initConstraints(const Robot& robot, const int time_step, 
-                       const double dtau, const SplitSolution& s);
+  void initConstraints(Robot& robot, const int time_step, const double dtau, 
+                       const SplitSolution& s);
 
   ///
   /// @brief Linearize the OCP for Newton's method around the current solution.
@@ -129,7 +130,7 @@ public:
   /// @param[in] d Split direction of this stage.
   /// 
   void computeCondensedDirection(const Robot& robot, const double dtau, 
-                                 SplitDirection& d);
+                                 const SplitSolution& s, SplitDirection& d);
 
   ///
   /// @brief Returns maximum stap size of the primal variables that satisfies 
@@ -257,32 +258,14 @@ private:
   KKTMatrix kkt_matrix_;
   StateEquation state_equation_;
   RobotDynamics robot_dynamics_;
+  ContactComplementarity contact_complementarity_;
   RiccatiGain riccati_gain_;
   RiccatiMatrixFactorizer riccati_factorizer_;
   RiccatiMatrixInverter riccati_inverter_;
   Eigen::MatrixXd Ginv_; /// @brief Inverse of the Riccati matrix G.
   SplitSolution s_tmp_; /// @brief Temporary split solution used in line search.
   int dimv_, dimf_, dimc_;
-  bool use_kinematics_;
-
-  ///
-  /// @brief Set contact status from robot model, i.e., set dimension of the 
-  /// contacts and equality constraints.
-  /// @param[in] robot Robot model. Must be initialized by URDF or XML.
-  ///
-  inline void setContactStatus(const Robot& robot) {
-    dimf_ = robot.dimf();
-    dimc_ = robot.dim_passive() + robot.dimf();
-  }
-
-  ///
-  /// @brief Gets the block matrix of Ginv wth appropriate size. Before calling 
-  /// this function, call setContactStatus() to update contact dimensions.
-  /// @return Block matrix of Ginv wth appropriate size.
-  ///
-  inline Eigen::Block<Eigen::MatrixXd> Ginv_active() {
-    return Ginv_.topLeftCorner(dimv_+dimf_+dimc_, dimv_+dimf_+dimc_);
-  }
+  bool has_floating_base_, has_contacts_, use_kinematics_;
 
 };
 

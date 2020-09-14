@@ -20,18 +20,17 @@ class FloatingBaseBaumgarteInequalityTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
     srand((unsigned int) time(0));
-    barrier_ = 1.0e-04;
     dtau_ = std::abs(Eigen::VectorXd::Random(1)[0]);
     const std::vector<int> contact_frames = {14, 24, 34, 44};
     const std::string urdf = "../urdf/anymal/anymal.urdf";
     robot_ = Robot(urdf, contact_frames, 0, 0);
-    baumgarte_inequality_ = BaumgarteInequality(robot_, barrier_);
+    baumgarte_inequality_ = BaumgarteInequality(robot_);
   }
 
   virtual void TearDown() {
   }
 
-  double barrier_, dtau_;
+  double dtau_;
   Eigen::VectorXd slack_, dual_, dslack_, ddual_;
   Robot robot_;
   BaumgarteInequality baumgarte_inequality_;
@@ -252,7 +251,7 @@ TEST_F(FloatingBaseBaumgarteInequalityTest, augmentComplementarityCondensedHessi
   KKTResidual kkt_residual(robot_);
   ConstraintComponentData data(dimc);
   const double mu = std::abs(Eigen::VectorXd::Random(1)[0]);
-  ContactForceInequality force_inequality(robot_, mu, barrier_);
+  ContactForceInequality force_inequality(robot_, mu);
   baumgarte_inequality_.augmentDualResidual(robot_, dtau_, s, data, kkt_residual);
   baumgarte_inequality_.augmentComplementarityCondensedHessian(robot_, dtau_, s, force_inequality, diagonal, kkt_matrix);
   Eigen::MatrixXd dbaum_dq(Eigen::MatrixXd::Zero(3*robot_.num_point_contacts(), robot_.dimv()));

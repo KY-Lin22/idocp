@@ -23,20 +23,23 @@ protected:
   virtual void SetUp() {
     srand((unsigned int) time(0));
     mu_ = std::abs(Eigen::VectorXd::Random(1)[0]);
+    max_complementarity_violation_ = 1.0e-04;
     barrier_ = 1.0e-04;
     dtau_ = std::abs(Eigen::VectorXd::Random(1)[0]);
     fraction_to_boundary_rate_ = 0.995;
     const std::vector<int> contact_frames = {18};
     const std::string urdf = "../urdf/iiwa14/iiwa14.urdf";
     robot_ = Robot(urdf, contact_frames, 0, 0);
-    contact_complementarity_ = ContactComplementarity(robot_, mu_, barrier_, fraction_to_boundary_rate_);
+    contact_complementarity_ = ContactComplementarity(
+        robot_, mu_, max_complementarity_violation_, barrier_, 
+        fraction_to_boundary_rate_);
   }
 
   virtual void TearDown() {
   }
 
-  double mu_, barrier_, dtau_, fraction_to_boundary_rate_;
-  Eigen::VectorXd slack_, dual_, dslack_, ddual_;
+  double mu_, max_complementarity_violation_, barrier_, dtau_, 
+         fraction_to_boundary_rate_;
   Robot robot_;
   ContactComplementarity contact_complementarity_;
 };
@@ -64,9 +67,8 @@ TEST_F(FixedBaseContactComplementarityTest, computePrimalResidual) {
   s.set_f();
   s.f_verbose(4) = 1.1 * std::sqrt((s.f(0)*s.f(0)+s.f(1)*s.f(1))/(mu_*mu_));
   s.set_f();
-  ASSERT_TRUE(contact_complementarity_.isFeasible(robot_, s));
-  ConstraintComponentData data(6);
-  data.slack = Eigen::VectorXd::Random(6*robot_.num_point_contacts()).array().abs();
+  const int dimc = 6*robot_.num_point_contacts();
+
   contact_complementarity_.computeResidual(robot_, dtau_, s);
   Eigen::VectorXd residual_ref(Eigen::VectorXd::Zero(6));
   residual_ref.head(5) = - dtau_ * s.f_verbose.head(5);

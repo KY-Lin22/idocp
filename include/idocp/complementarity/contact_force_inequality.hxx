@@ -6,12 +6,10 @@
 namespace idocp {
 
 inline ContactForceInequality::ContactForceInequality(const Robot& robot, 
-                                                      const double mu, 
-                                                      const double barrier)
+                                                      const double mu)
   : num_point_contacts_(robot.num_point_contacts()),
     dimc_(6*robot.num_point_contacts()),
-    mu_(mu), 
-    barrier_(barrier) {
+    mu_(mu) {
   f_rsc_.setZero();
 }
 
@@ -19,8 +17,7 @@ inline ContactForceInequality::ContactForceInequality(const Robot& robot,
 inline ContactForceInequality::ContactForceInequality() 
   : num_point_contacts_(0),
     dimc_(0),
-    mu_(0), 
-    barrier_(0) {
+    mu_(0) {
   f_rsc_.setZero();
 }
 
@@ -66,7 +63,6 @@ inline void ContactForceInequality::setSlack(const Robot& robot,
     const double fz = s.f.coeff(kDimb*i+2);
     data.slack.coeffRef(kDimc*i+kDimf) = dtau * (mu_*mu_*fz*fz-fx*fx-fy*fy);
   }
-  pdipmfunc::SetSlackAndDualPositive(barrier_, data.slack, data.dual);
 }
 
 

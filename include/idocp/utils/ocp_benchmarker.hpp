@@ -57,7 +57,7 @@ public:
 private:
   std::string benchmark_name_;
   OCPType ocp_;
-  int dimq_, dimv_, max_dimf_, N_, num_proc_;
+  int dimq_, dimv_, dimf_, N_, num_proc_;
   double T_, dtau_;
 
 };

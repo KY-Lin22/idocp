@@ -14,8 +14,8 @@ inline ContactComplementarity::ContactComplementarity(
     max_complementarity_violation_(max_complementarity_violation), 
     barrier_(barrier), 
     fraction_to_boundary_rate_(fraction_to_boundary_rate),
-    contact_force_inequality_(robot, mu, barrier),
-    baumgarte_inequality_(robot, barrier),
+    contact_force_inequality_(robot, mu),
+    baumgarte_inequality_(robot),
     force_data_(dimc_),
     baumgarte_data_(dimc_),
     complementarity_data_(dimc_),
@@ -73,29 +73,33 @@ inline void ContactComplementarity::setSlackAndDual(Robot& robot,
   assert(dtau > 0);
   contact_force_inequality_.setSlack(robot, dtau, s, force_data_);
   baumgarte_inequality_.setSlack(robot, dtau, s, baumgarte_data_);
-  assert(force_data_.slack.minCoeff() > 0);
-  assert(baumgarte_data_.slack.minCoeff() > 0);
+  for (int i=0; i<dimc_; ++i) {
+    if (force_data_.slack.coeff(i) < barrier_) {
+      force_data_.slack.coeffRef(i) = barrier_;
+    }
+    if (baumgarte_data_.slack.coeff(i) < barrier_) {
+      baumgarte_data_.slack.coeffRef(i) = barrier_;
+    }
+  }
+  force_data_.dual.array() 
+      = barrier_ / force_data_.slack.array() 
+          - baumgarte_data_.slack.array() * complementarity_data_.dual.array();
+  baumgarte_data_.dual.array() 
+      = barrier_ / baumgarte_data_.slack.array() 
+          - force_data_ .slack.array() * complementarity_data_.dual.array();
+  for (int i=0; i<dimc_; ++i) {
+    if (force_data_.dual.coeff(i) < barrier_) {
+      force_data_.dual.coeffRef(i) = barrier_;
+    }
+    if (baumgarte_data_.dual.coeff(i) < barrier_) {
+      baumgarte_data_.dual.coeffRef(i) = barrier_;
+    }
+  }
   complementarity_data_.slack.array() 
       = max_complementarity_violation_ 
           - force_data_.slack.array() * baumgarte_data_.slack.array();
   pdipmfunc::SetSlackAndDualPositive(barrier_, complementarity_data_.slack, 
                                      complementarity_data_.dual);
-  force_data_.dual.array() 
-      = barrier_ / force_data_.slack.array() 
-          - baumgarte_data_.slack.array() * complementarity_data_.dual.array();
-  for (int i=0; i<force_data_.dual.size(); ++i) {
-    while (force_data_.dual.coeff(i) < barrier_) {
-      force_data_.dual.coeffRef(i) += barrier_;
-    }
-  }
-  baumgarte_data_.dual.array() 
-      = barrier_ / baumgarte_data_.slack.array() 
-          - force_data_ .slack.array() * complementarity_data_.dual.array();
-  for (int i=0; i<baumgarte_data_.dual.size(); ++i) {
-    while (baumgarte_data_.dual.coeff(i) < barrier_) {
-      baumgarte_data_.dual.coeffRef(i) += barrier_;
-    }
-  }
 }
 
 

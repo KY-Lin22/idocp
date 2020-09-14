@@ -16,6 +16,7 @@
 #include "idocp/constraints/constraints.hpp"
 #include "idocp/ocp/state_equation.hpp"
 #include "idocp/ocp/robot_dynamics.hpp"
+#include "idocp/complementarity/contact_complementarity.hpp"
 
 
 namespace idocp {
@@ -72,7 +73,7 @@ public:
   /// @param[in] robot Robot model. Must be initialized by URDF or XML.
   /// @param[in] s Split solution of this stage.
   ///
-  bool isFeasible(const Robot& robot, const SplitSolution& s);
+  bool isFeasible(Robot& robot, const SplitSolution& s);
 
   ///
   /// @brief Initialize the constraints, i.e., set slack and dual variables. 
@@ -81,7 +82,7 @@ public:
   /// @param[in] dtau Length of the discretization of the horizon.
   /// @param[in] s Split solution of this stage.
   ///
-  void initConstraints(const Robot& robot, const int time_step, 
+  void initConstraints(Robot& robot, const int time_step, 
                        const double dtau, const SplitSolution& s);
 
   ///
@@ -448,6 +449,7 @@ private:
   KKTMatrix kkt_matrix_;
   StateEquation state_equation_;
   RobotDynamics robot_dynamics_;
+  ContactComplementarity contact_complementarity_;
   int dimv_, dimx_, dimKKT_;
   Eigen::MatrixXd kkt_matrix_inverse_;
   Eigen::VectorXd x_res_; /// @brief Residual of state and costate used in the forward and backward correction.
