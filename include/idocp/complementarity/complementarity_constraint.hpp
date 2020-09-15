@@ -5,15 +5,15 @@
 
 #include "idocp/constraints/constraint_component_data.hpp"
 
-
 namespace idocp {
 
 class ComplementarityConstraint {
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   ComplementarityConstraint(const int dimc, 
-                            const double max_complementarity_violation=1.0e-04, 
-                            const double barrier=1.0e-08,
-                            const double fraction_to_boundary_rate=0.995);
+                            const double max_complementarity_violation, 
+                            const double barrier);
 
   ComplementarityConstraint();
 
@@ -27,24 +27,24 @@ public:
 
   ComplementarityConstraint& operator=(ComplementarityConstraint&&) noexcept = default;
 
-  bool isFeasible(const ConstraintComponentData& data_inequality1, 
-                  const ConstraintComponentData& data_inequality2) const;
+  bool isFeasible(const ConstraintComponentData& data_constraint1, 
+                  const ConstraintComponentData& data_constraint2) const;
 
-  void setSlackAndDual(ConstraintComponentData& data_inequality1, 
-                       ConstraintComponentData& data_inequality2,
+  void setSlackAndDual(ConstraintComponentData& data_constraint1, 
+                       ConstraintComponentData& data_constraint2,
                        ConstraintComponentData& data_complementarity) const;
 
   void computeComplementarityResidual(
-      const ConstraintComponentData& data_inequality1, 
-      const ConstraintComponentData& data_inequality2, 
+      const ConstraintComponentData& data_constraint1, 
+      const ConstraintComponentData& data_constraint2, 
       ConstraintComponentData& data_complementarity) const;
 
-  void computeDualities(ConstraintComponentData& data_inequality1, 
-                        ConstraintComponentData& data_inequality2,
+  void computeDualities(ConstraintComponentData& data_constraint1, 
+                        ConstraintComponentData& data_constraint2,
                         ConstraintComponentData& data_complementarity) const;
 
-  void condenseSlackAndDual(const ConstraintComponentData& data_inequality1, 
-                            const ConstraintComponentData& data_inequality2, 
+  void condenseSlackAndDual(const ConstraintComponentData& data_constraint1, 
+                            const ConstraintComponentData& data_constraint2, 
                             const ConstraintComponentData& data_complementarity,
                             Eigen::VectorXd& condensed_hessian_diagonal11, 
                             Eigen::VectorXd& condensed_hessian_diagonal12, 
@@ -52,8 +52,8 @@ public:
                             Eigen::VectorXd& condensed_dual1, 
                             Eigen::VectorXd& condensed_dual2);
 
-  void computeDirections(ConstraintComponentData& data_inequality1, 
-                         ConstraintComponentData& data_inequality2, 
+  void computeDirections(ConstraintComponentData& data_constraint1, 
+                         ConstraintComponentData& data_constraint2, 
                          ConstraintComponentData& data_complementarity) const;
 
   void set_max_complementarity_violation(
@@ -61,12 +61,10 @@ public:
 
   void set_barrier(const double barrier);
 
-  void set_fraction_to_boundary_rate(const double fraction_to_boundary_rate);
-
 private:
   int dimc_;
-  double max_complementarity_violation_, barrier_, fraction_to_boundary_rate_;
-  Eigen::VectorXd dinequality1_, dinequality2_, dcomplementarity_;
+  double max_complementarity_violation_, barrier_;
+  Eigen::VectorXd dconstraint1_, dconstraint2_, dcomplementarity_;
 
 };
   

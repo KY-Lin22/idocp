@@ -18,11 +18,9 @@ protected:
     dimc = 10;
     max_complementarity_violation = 1.0e-02;
     barrier = 1.0e-04;
-    fraction_to_boundary_rate = 0.995;
     complementarity = ComplementarityConstraint(dimc, 
                                                 max_complementarity_violation, 
-                                                barrier, 
-                                                fraction_to_boundary_rate);
+                                                barrier);
     data1 = ConstraintComponentData(dimc);
     data2 = ConstraintComponentData(dimc);
     datacc = ConstraintComponentData(dimc);
@@ -32,7 +30,7 @@ protected:
   }
 
   int dimc;
-  double max_complementarity_violation, barrier, fraction_to_boundary_rate;
+  double max_complementarity_violation, barrier;
   ComplementarityConstraint complementarity;
   ConstraintComponentData data1, data2, datacc;
 };

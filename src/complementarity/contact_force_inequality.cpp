@@ -1,1 +1,0 @@
-#include "idocp/complementarity/contact_force_inequality.hpp"

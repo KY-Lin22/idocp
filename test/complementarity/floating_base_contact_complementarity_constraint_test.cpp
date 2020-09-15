@@ -12,8 +12,8 @@
 #include "idocp/ocp/kkt_matrix.hpp"
 #include "idocp/ocp/kkt_residual.hpp"
 #include "idocp/complementarity/contact_complementarity.hpp"
-#include "idocp/complementarity/contact_force_inequality.hpp"
-#include "idocp/complementarity/baumgarte_inequality.hpp"
+#include "idocp/complementarity/contact_force_constraint.hpp"
+#include "idocp/complementarity/baumgarte_constraint.hpp"
 #include "idocp/constraints/constraint_component_data.hpp"
 
 namespace idocp {
@@ -33,8 +33,8 @@ protected:
     contact_complementarity_ = ContactComplementarity(
         robot_, mu_, max_complementarity_violation_, barrier_, 
         fraction_to_boundary_rate_);
-    force_inequality_ = ContactForceInequality(robot_, mu_);
-    baum_inequality_ = BaumgarteInequality(robot_);
+    force_constraint_ = ContactForceConstraint(robot_, mu_);
+    baum_constraint_ = BaumgarteConstraint(robot_);
     force_data_ = ConstraintComponentData(6*robot_.num_point_contacts());
     baum_data_ = ConstraintComponentData(6*robot_.num_point_contacts());
     complementarity_data_ = ConstraintComponentData(6*robot_.num_point_contacts());
@@ -48,8 +48,8 @@ protected:
          fraction_to_boundary_rate_;
   Robot robot_;
   ContactComplementarity contact_complementarity_;
-  ContactForceInequality force_inequality_;
-  BaumgarteInequality baum_inequality_;
+  ContactForceConstraint force_constraint_;
+  BaumgarteConstraint baum_constraint_;
   ConstraintComponentData force_data_, baum_data_, complementarity_data_;
   int dimc_;
 };
@@ -120,8 +120,8 @@ TEST_F(FloatingBaseContactComplementarityTest, computeResidual) {
   contact_complementarity_.computeResidual(robot_, dtau_, s);
   const double L1Norm = contact_complementarity_.residualL1Nrom();
   const double squaredNorm = contact_complementarity_.squaredKKTErrorNorm();
-  force_inequality_.computePrimalResidual(robot_, dtau_, s, force_data_);
-  baum_inequality_.computePrimalResidual(robot_, dtau_, s, baum_data_);
+  force_constraint_.computePrimalResidual(robot_, dtau_, s, force_data_);
+  baum_constraint_.computePrimalResidual(robot_, dtau_, s, baum_data_);
   const double L1Norm_ref = force_data_.residual.lpNorm<1>() 
                               + baum_data_.residual.lpNorm<1>() 
                               + Eigen::VectorXd::Constant(dimc_, barrier_).lpNorm<1>() 
@@ -155,8 +155,8 @@ TEST_F(FloatingBaseContactComplementarityTest, augmentDualResidual) {
   contact_complementarity_.setSlackAndDual(robot_, dtau_, s);
   contact_complementarity_.augmentDualResidual(robot_, dtau_, s, kkt_residual);
   KKTResidual kkt_residual_ref(robot_);
-  force_inequality_.setSlack(robot_, dtau_, s, force_data_);
-  baum_inequality_.setSlack(robot_, dtau_, s, baum_data_);
+  force_constraint_.setSlack(robot_, dtau_, s, force_data_);
+  baum_constraint_.setSlack(robot_, dtau_, s, baum_data_);
   for (int i=0; i<dimc_; ++i) {
     if (force_data_.slack.coeff(i) < barrier_) force_data_.slack.coeffRef(i) = barrier_;
     if (baum_data_.slack.coeff(i) < barrier_) baum_data_.slack.coeffRef(i) = barrier_;

@@ -1,5 +1,5 @@
-#ifndef IDOCP_BAUMGARTE_INEQUALITY_HPP_
-#define IDOCP_BAUMGARTE_INEQUALITY_HPP_
+#ifndef IDOCP_BAUMGARTE_CONSTRAINT_HPP_
+#define IDOCP_BAUMGARTE_CONSTRAINT_HPP_
 
 #include "Eigen/Core"
 
@@ -9,27 +9,27 @@
 #include "idocp/ocp/split_direction.hpp"
 #include "idocp/ocp/kkt_residual.hpp"
 #include "idocp/ocp/kkt_matrix.hpp"
-#include "idocp/complementarity/contact_force_inequality.hpp"
+#include "idocp/complementarity/contact_force_constraint.hpp"
 
 
 namespace idocp {
-class BaumgarteInequality {
+class BaumgarteConstraint {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  BaumgarteInequality(const Robot& robot);
+  BaumgarteConstraint(const Robot& robot);
 
-  BaumgarteInequality();
+  BaumgarteConstraint();
 
-  ~BaumgarteInequality();
+  ~BaumgarteConstraint();
 
-  BaumgarteInequality(const BaumgarteInequality&) = default;
+  BaumgarteConstraint(const BaumgarteConstraint&) = default;
 
-  BaumgarteInequality& operator=(const BaumgarteInequality&) = default;
+  BaumgarteConstraint& operator=(const BaumgarteConstraint&) = default;
  
-  BaumgarteInequality(BaumgarteInequality&&) noexcept = default;
+  BaumgarteConstraint(BaumgarteConstraint&&) noexcept = default;
 
-  BaumgarteInequality& operator=(BaumgarteInequality&&) noexcept = default;
+  BaumgarteConstraint& operator=(BaumgarteConstraint&&) noexcept = default;
 
   bool isFeasible(Robot& robot, const SplitSolution& s);
 
@@ -54,7 +54,7 @@ public:
   template <typename VectorType>
   void augmentComplementarityCondensedHessian(
       Robot& robot, const double dtau, const SplitSolution& s, 
-      const ContactForceInequality& contact_force_inequality, 
+      const ContactForceConstraint& contact_force_constraint, 
       const Eigen::MatrixBase<VectorType>& diagonal, KKTMatrix& kkt_matrix); 
 
   template <typename VectorType>
@@ -82,6 +82,6 @@ private:
 
 } // namespace idocp 
 
-#include "idocp/complementarity/baumgarte_inequality.hxx"
+#include "idocp/complementarity/baumgarte_constraint.hxx"
 
-#endif // IDOCP_BAUMGARTE_INEQUALITY_HPP_ 
+#endif // IDOCP_BAUMGARTE_CONSTRAINT_HPP_ 

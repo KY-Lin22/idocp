@@ -1,5 +1,5 @@
-#ifndef IDOCP_CONTACT_COMPLEMENTARITY_HPP_
-#define IDOCP_CONTACT_COMPLEMENTARITY_HPP_
+#ifndef IDOCP_CONTACT_COMPLEMENTARITY_CONSTRAINT_HPP_
+#define IDOCP_CONTACT_COMPLEMENTARITY_CONSTRAINT_HPP_
 
 #include "Eigen/Core"
 
@@ -9,31 +9,33 @@
 #include "idocp/ocp/kkt_matrix.hpp"
 #include "idocp/ocp/kkt_residual.hpp"
 #include "idocp/constraints/constraint_component_data.hpp"
-#include "idocp/complementarity/contact_force_inequality.hpp"
-#include "idocp/complementarity/baumgarte_inequality.hpp"
+#include "idocp/complementarity/contact_force_constraint.hpp"
+#include "idocp/complementarity/baumgarte_constraint.hpp"
+#include "idocp/complementarity/complementarity_constraint.hpp"
 
 
 namespace idocp {
-class ContactComplementarity {
+class ContactComplementarityConstraint {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  ContactComplementarity(const Robot& robot, const double mu,  
-                         const double max_complementarity_violation=1.0e-04, 
-                         const double barrier=1.0e-08,
-                         const double fraction_to_boundary_rate=0.995);
+  ContactComplementarityConstraint(
+      const Robot& robot, const double mu,  
+      const double max_complementarity_violation=1.0e-04, 
+      const double barrier=1.0e-08, 
+      const double fraction_to_boundary_rate=0.995);
 
-  ContactComplementarity();
+  ContactComplementarityConstraint();
 
-  ~ContactComplementarity();
+  ~ContactComplementarityConstraint();
 
-  ContactComplementarity(const ContactComplementarity&) = default;
+  ContactComplementarityConstraint(const ContactComplementarityConstraint&) = default;
 
-  ContactComplementarity& operator=(const ContactComplementarity&) = default;
+  ContactComplementarityConstraint& operator=(const ContactComplementarityConstraint&) = default;
  
-  ContactComplementarity(ContactComplementarity&&) noexcept = default;
+  ContactComplementarityConstraint(ContactComplementarityConstraint&&) noexcept = default;
 
-  ContactComplementarity& operator=(ContactComplementarity&&) noexcept = default;
+  ContactComplementarityConstraint& operator=(ContactComplementarityConstraint&&) noexcept = default;
 
   bool isFeasible(Robot& robot, const SplitSolution& s);
 
@@ -76,26 +78,30 @@ public:
 
   void set_mu(const double mu);
 
+  void set_max_complementarity_violation(
+      const double max_complementarity_violation);
+
   void set_barrier(const double barrier);
 
-  void set_maxComplementarityViolation(
-      const double max_complementarity_violation);
+  void set_fraction_to_boundary_rate(const double fraction_to_boundary_rate);
 
 private:
   int dimc_; 
   double max_complementarity_violation_, barrier_, fraction_to_boundary_rate_;
-  ContactForceInequality contact_force_inequality_;
-  BaumgarteInequality baumgarte_inequality_;
+  ContactForceConstraint contact_force_constraint_;
+  BaumgarteConstraint baumgarte_constraint_;
+  ComplementarityConstraint complementarity_constraint_;
   ConstraintComponentData contact_force_data_, baumgarte_data_, 
                           complementarity_data_;
-  Eigen::VectorXd s_g_, s_h_, g_w_, g_ss_, g_st_, g_tt_, 
-                  condensed_force_residual_, condensed_baumgarte_residual_;
-  bool has_contacts_;
+  Eigen::VectorXd condensed_hessian_diagonal_contact_force_, 
+                  condensed_hessian_diagonal_baumgarte_,
+                  condensed_hessian_diagonal_contact_force_baumgarte_,
+                  condensed_dual_contact_force_, condensed_dual_baumgarte_;
 
 };
 
 } // namespace idocp 
 
-#include "idocp/complementarity/contact_complementarity.hxx"
+#include "idocp/complementarity/contact_complementarity_constraint.hxx"
 
-#endif // IDOCP_CONTACT_COMPLEMENTARITY_HPP_ 
+#endif // IDOCP_CONTACT_COMPLEMENTARITY_CONSTRAINT_HPP_

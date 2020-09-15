@@ -1,11 +1,14 @@
-#include "idocp/complementarity/baumgarte_inequality.hpp"
+#ifndef IDOCP_BAUMGARTE_CONSTRAINT_HXX_
+#define IDOCP_BAUMGARTE_CONSTRAINT_HXX_
+
+#include "idocp/complementarity/baumgarte_constraint.hpp"
 #include "idocp/constraints/pdipm_func.hpp"
 
 #include <assert.h>
 
 namespace idocp {
 
-inline BaumgarteInequality::BaumgarteInequality(const Robot& robot)
+inline BaumgarteConstraint::BaumgarteConstraint(const Robot& robot)
   : num_point_contacts_(robot.num_point_contacts()),
     dimc_(kDimc*robot.num_point_contacts()),
     Baumgarte_residual_(Eigen::VectorXd::Zero(3*robot.num_point_contacts())),
@@ -26,7 +29,7 @@ inline BaumgarteInequality::BaumgarteInequality(const Robot& robot)
 }
 
 
-inline BaumgarteInequality::BaumgarteInequality() 
+inline BaumgarteConstraint::BaumgarteConstraint() 
   : num_point_contacts_(0),
     dimc_(0),
     dBaumgarte_dq_(),
@@ -40,11 +43,11 @@ inline BaumgarteInequality::BaumgarteInequality()
 }
 
 
-inline BaumgarteInequality::~BaumgarteInequality() {
+inline BaumgarteConstraint::~BaumgarteConstraint() {
 }
 
 
-inline bool BaumgarteInequality::isFeasible(Robot& robot, 
+inline bool BaumgarteConstraint::isFeasible(Robot& robot, 
                                             const SplitSolution& s) {
   robot.computeBaumgarteResidual(Baumgarte_residual_); 
   for (int i=0; i<robot.num_point_contacts(); ++i) {
@@ -71,7 +74,7 @@ inline bool BaumgarteInequality::isFeasible(Robot& robot,
 }
 
 
-inline void BaumgarteInequality::setSlack(Robot& robot, const double dtau, 
+inline void BaumgarteConstraint::setSlack(Robot& robot, const double dtau, 
                                           const SplitSolution& s,
                                           ConstraintComponentData& data) {
   assert(dtau > 0);
@@ -93,7 +96,7 @@ inline void BaumgarteInequality::setSlack(Robot& robot, const double dtau,
 }
 
 
-inline void BaumgarteInequality::computePrimalResidual(
+inline void BaumgarteConstraint::computePrimalResidual(
     Robot& robot, const double dtau, const SplitSolution& s, 
     ConstraintComponentData& data) {
   assert(dtau > 0);
@@ -117,7 +120,7 @@ inline void BaumgarteInequality::computePrimalResidual(
 }
 
 
-inline void BaumgarteInequality::augmentDualResidual(
+inline void BaumgarteConstraint::augmentDualResidual(
     Robot& robot, const double dtau, const SplitSolution& s, 
     const ConstraintComponentData& data, KKTResidual& kkt_residual) {
   assert(dtau > 0);
@@ -156,7 +159,7 @@ inline void BaumgarteInequality::augmentDualResidual(
 
 
 template <typename VectorType>
-inline void BaumgarteInequality::augmentCondensedHessian(
+inline void BaumgarteConstraint::augmentCondensedHessian(
     Robot& robot, const double dtau, const SplitSolution& s, 
     const Eigen::MatrixBase<VectorType>& diagonal, KKTMatrix& kkt_matrix) {
   assert(dtau > 0);
@@ -223,12 +226,12 @@ inline void BaumgarteInequality::augmentCondensedHessian(
 
 
 template <typename VectorType>
-inline void BaumgarteInequality::augmentComplementarityCondensedHessian(
+inline void BaumgarteConstraint::augmentComplementarityCondensedHessian(
     Robot& robot, const double dtau, const SplitSolution& s, 
-    const ContactForceInequality& contact_force_inequality, 
+    const ContactForceConstraint& contact_force_constraint, 
     const Eigen::MatrixBase<VectorType>& diagonal, KKTMatrix& kkt_matrix) {
   assert(diagonal.size() == kDimc*robot.num_point_contacts());
-  const double mu = contact_force_inequality.mu();
+  const double mu = contact_force_constraint.mu();
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     kkt_matrix.Qaf().block(0, kDimf*i, robot.dimv(), kDimf).noalias() 
         += (dtau*dtau) * dBaumgarte_verbose_da_.block(kDimc*i, 0, kDimf, 
@@ -268,7 +271,7 @@ inline void BaumgarteInequality::augmentComplementarityCondensedHessian(
 
 
 template <typename VectorType>
-inline void BaumgarteInequality::augmentCondensedResidual(
+inline void BaumgarteConstraint::augmentCondensedResidual(
     Robot& robot, const double dtau, const SplitSolution& s, 
     const Eigen::MatrixBase<VectorType>& residual, KKTResidual& kkt_residual) {
   assert(dtau > 0);
@@ -290,7 +293,7 @@ inline void BaumgarteInequality::augmentCondensedResidual(
 }
 
 
-inline void BaumgarteInequality::computeSlackDirection(
+inline void BaumgarteConstraint::computeSlackDirection(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     const SplitDirection& d, ConstraintComponentData& data) const {
   assert(dtau > 0);
@@ -311,3 +314,5 @@ inline void BaumgarteInequality::computeSlackDirection(
 }
 
 } // namespace idocp
+
+#endif // IDOCP_BAUMGARTE_CONSTRAINT_HXX_ 

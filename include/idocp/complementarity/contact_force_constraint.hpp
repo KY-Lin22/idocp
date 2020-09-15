@@ -1,5 +1,5 @@
-#ifndef IDOCP_CONTACT_FORCE_INEQUALITY_HPP_
-#define IDOCP_CONTACT_FORCE_INEQUALITY_HPP_
+#ifndef IDOCP_CONTACT_FORCE_CONSTRAINT_HPP_
+#define IDOCP_CONTACT_FORCE_CONSTRAINT_HPP_
 
 #include "Eigen/Core"
 
@@ -12,23 +12,23 @@
 
 
 namespace idocp {
-class ContactForceInequality {
+class ContactForceConstraint {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
  
-  ContactForceInequality(const Robot& robot, const double mu);
+  ContactForceConstraint(const Robot& robot, const double mu);
 
-  ContactForceInequality();
+  ContactForceConstraint();
 
-  ~ContactForceInequality();
+  ~ContactForceConstraint();
 
-  ContactForceInequality(const ContactForceInequality&) = default;
+  ContactForceConstraint(const ContactForceConstraint&) = default;
 
-  ContactForceInequality& operator=(const ContactForceInequality&) = default;
+  ContactForceConstraint& operator=(const ContactForceConstraint&) = default;
  
-  ContactForceInequality(ContactForceInequality&&) noexcept = default;
+  ContactForceConstraint(ContactForceConstraint&&) noexcept = default;
 
-  ContactForceInequality& operator=(ContactForceInequality&&) noexcept = default;
+  ContactForceConstraint& operator=(ContactForceConstraint&&) noexcept = default;
 
   bool isFeasible(const Robot& robot, const SplitSolution& s);
 
@@ -75,6 +75,6 @@ private:
 
 } // namespace idocp 
 
-#include "idocp/complementarity/contact_force_inequality.hxx"
+#include "idocp/complementarity/contact_force_constraint.hxx"
 
-#endif // IDOCP_CONTACT_FORCE_INEQUALITY_HPP_ 
+#endif // IDOCP_CONTACT_FORCE_CONSTRAINT_HPP_ 

@@ -11,12 +11,12 @@
 #include "idocp/ocp/split_direction.hpp"
 #include "idocp/ocp/kkt_matrix.hpp"
 #include "idocp/ocp/kkt_residual.hpp"
-#include "idocp/complementarity/contact_force_inequality.hpp"
+#include "idocp/complementarity/contact_force_constraint.hpp"
 #include "idocp/constraints/constraint_component_data.hpp"
 
 namespace idocp {
 
-class FloatingBaseContactForceInequalityTest : public ::testing::Test {
+class FloatingBaseContactForceConstraintTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
     srand((unsigned int) time(0));
@@ -25,7 +25,7 @@ protected:
     const std::vector<int> contact_frames = {14, 24, 34, 44};
     const std::string urdf = "../urdf/anymal/anymal.urdf";
     robot_ = Robot(urdf, contact_frames, 0, 0);
-    contact_force_inequality_ = ContactForceInequality(robot_, mu_);
+    contact_force_constraint_ = ContactForceConstraint(robot_, mu_);
   }
 
   virtual void TearDown() {
@@ -34,35 +34,35 @@ protected:
   double mu_, dtau_;
   Eigen::VectorXd slack_, dual_, dslack_, ddual_;
   Robot robot_;
-  ContactForceInequality contact_force_inequality_;
+  ContactForceConstraint contact_force_constraint_;
 };
 
 
-TEST_F(FloatingBaseContactForceInequalityTest, isFeasible) {
-  EXPECT_DOUBLE_EQ(contact_force_inequality_.mu(), mu_);
+TEST_F(FloatingBaseContactForceConstraintTest, isFeasible) {
+  EXPECT_DOUBLE_EQ(contact_force_constraint_.mu(), mu_);
   SplitSolution s(robot_);
   s.f = - Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   ASSERT_TRUE(s.f.size() == 5*robot_.num_point_contacts());
   ASSERT_TRUE(s.f_3D.size() == 3*robot_.num_point_contacts());
   ASSERT_TRUE(robot_.num_point_contacts() == 4);
   s.set_f_3D();
-  EXPECT_FALSE(contact_force_inequality_.isFeasible(robot_, s));
+  EXPECT_FALSE(contact_force_constraint_.isFeasible(robot_, s));
   s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.set_f_3D();
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
     s.f(5*i+4) = 0.9 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
   }
   s.set_f_3D();
-  EXPECT_FALSE(contact_force_inequality_.isFeasible(robot_, s));
+  EXPECT_FALSE(contact_force_constraint_.isFeasible(robot_, s));
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
     s.f(5*i+4) = 1.1 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
   }
   s.set_f_3D();
-  EXPECT_TRUE(contact_force_inequality_.isFeasible(robot_, s));
+  EXPECT_TRUE(contact_force_constraint_.isFeasible(robot_, s));
 }
 
 
-TEST_F(FloatingBaseContactForceInequalityTest, computePrimalResidual) {
+TEST_F(FloatingBaseContactForceConstraintTest, computePrimalResidual) {
   SplitSolution s(robot_);
   s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.set_f_3D();
@@ -70,11 +70,11 @@ TEST_F(FloatingBaseContactForceInequalityTest, computePrimalResidual) {
     s.f(5*i+4) = 1.1 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
   }
   s.set_f_3D();
-  ASSERT_TRUE(contact_force_inequality_.isFeasible(robot_, s));
+  ASSERT_TRUE(contact_force_constraint_.isFeasible(robot_, s));
   const int dimc = 6*robot_.num_point_contacts();
   ConstraintComponentData data(dimc);
   data.slack = Eigen::VectorXd::Random(dimc).array().abs();
-  contact_force_inequality_.computePrimalResidual(robot_, dtau_, s, data);
+  contact_force_constraint_.computePrimalResidual(robot_, dtau_, s, data);
   Eigen::VectorXd residual_ref(Eigen::VectorXd::Zero(dimc));
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
     residual_ref.segment<6>(6*i).head(5) = data.slack.segment<6>(6*i).head(5) - dtau_ * s.f.segment<5>(5*i);
@@ -82,13 +82,13 @@ TEST_F(FloatingBaseContactForceInequalityTest, computePrimalResidual) {
         = data.slack.segment<6>(6*i).coeffRef(5) - dtau_ * (mu_*mu_*s.f_3D(3*i+2)*s.f_3D(3*i+2) - s.f_3D(3*i+0)*s.f_3D(3*i+0) - s.f_3D(3*i+1)*s.f_3D(3*i+1));
   }
   EXPECT_TRUE(data.residual.isApprox(residual_ref));
-  contact_force_inequality_.setSlack(robot_, dtau_, s, data);
-  contact_force_inequality_.computePrimalResidual(robot_, dtau_, s, data);
+  contact_force_constraint_.setSlack(robot_, dtau_, s, data);
+  contact_force_constraint_.computePrimalResidual(robot_, dtau_, s, data);
   EXPECT_TRUE(data.residual.isZero());
 }
 
 
-TEST_F(FloatingBaseContactForceInequalityTest, augmentDualResidual) {
+TEST_F(FloatingBaseContactForceConstraintTest, augmentDualResidual) {
   SplitSolution s(robot_);
   s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.set_f_3D();
@@ -96,12 +96,12 @@ TEST_F(FloatingBaseContactForceInequalityTest, augmentDualResidual) {
     s.f(5*i+4) = 1.1 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
   }
   s.set_f_3D();
-  ASSERT_TRUE(contact_force_inequality_.isFeasible(robot_, s));
+  ASSERT_TRUE(contact_force_constraint_.isFeasible(robot_, s));
   const int dimc = 6*robot_.num_point_contacts();
   ConstraintComponentData data(dimc);
   data.dual = Eigen::VectorXd::Random(dimc).array().abs();
   KKTResidual kkt_residual(robot_);
-  contact_force_inequality_.augmentDualResidual(robot_, dtau_, s, data, kkt_residual);
+  contact_force_constraint_.augmentDualResidual(robot_, dtau_, s, data, kkt_residual);
   Eigen::MatrixXd g_f(Eigen::MatrixXd::Zero(6*robot_.num_point_contacts(), 
                                             5*robot_.num_point_contacts()));
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
@@ -123,7 +123,7 @@ TEST_F(FloatingBaseContactForceInequalityTest, augmentDualResidual) {
 }
 
 
-TEST_F(FloatingBaseContactForceInequalityTest, augmentCondensedHessian) {
+TEST_F(FloatingBaseContactForceConstraintTest, augmentCondensedHessian) {
   SplitSolution s(robot_);
   s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.set_f_3D();
@@ -131,13 +131,13 @@ TEST_F(FloatingBaseContactForceInequalityTest, augmentCondensedHessian) {
     s.f(5*i+4) = 1.1 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
   }
   s.set_f_3D();
-  ASSERT_TRUE(contact_force_inequality_.isFeasible(robot_, s));
+  ASSERT_TRUE(contact_force_constraint_.isFeasible(robot_, s));
   const int dimc = 6*robot_.num_point_contacts();
   ConstraintComponentData data(dimc);
   data.residual = Eigen::VectorXd::Random(dimc);
   KKTMatrix kkt_matrix(robot_);
   const Eigen::VectorXd diagonal = Eigen::VectorXd::Random(dimc).array().abs();
-  contact_force_inequality_.augmentCondensedHessian(robot_, dtau_, s, diagonal, kkt_matrix);
+  contact_force_constraint_.augmentCondensedHessian(robot_, dtau_, s, diagonal, kkt_matrix);
   Eigen::MatrixXd g_f(Eigen::MatrixXd::Zero(6*robot_.num_point_contacts(), 
                                             5*robot_.num_point_contacts()));
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
@@ -160,7 +160,7 @@ TEST_F(FloatingBaseContactForceInequalityTest, augmentCondensedHessian) {
 }
 
 
-TEST_F(FloatingBaseContactForceInequalityTest, augmentCondensedResidual) {
+TEST_F(FloatingBaseContactForceConstraintTest, augmentCondensedResidual) {
   SplitSolution s(robot_);
   s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.set_f_3D();
@@ -168,13 +168,13 @@ TEST_F(FloatingBaseContactForceInequalityTest, augmentCondensedResidual) {
     s.f(5*i+4) = 1.1 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
   }
   s.set_f_3D();
-  ASSERT_TRUE(contact_force_inequality_.isFeasible(robot_, s));
+  ASSERT_TRUE(contact_force_constraint_.isFeasible(robot_, s));
   const int dimc = 6*robot_.num_point_contacts();
   ConstraintComponentData data(dimc);
   data.residual = Eigen::VectorXd::Random(dimc);
   KKTResidual kkt_residual(robot_);
   const Eigen::VectorXd condensed_residual = Eigen::VectorXd::Random(dimc).array().abs();
-  contact_force_inequality_.augmentCondensedResidual(robot_, dtau_, s, condensed_residual, kkt_residual);
+  contact_force_constraint_.augmentCondensedResidual(robot_, dtau_, s, condensed_residual, kkt_residual);
   Eigen::MatrixXd g_f(Eigen::MatrixXd::Zero(6*robot_.num_point_contacts(), 
                                             5*robot_.num_point_contacts()));
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
@@ -196,7 +196,7 @@ TEST_F(FloatingBaseContactForceInequalityTest, augmentCondensedResidual) {
 }
 
 
-TEST_F(FloatingBaseContactForceInequalityTest, computeSlackDirection) {
+TEST_F(FloatingBaseContactForceConstraintTest, computeSlackDirection) {
   SplitSolution s(robot_);
   s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.set_f_3D();
@@ -204,13 +204,13 @@ TEST_F(FloatingBaseContactForceInequalityTest, computeSlackDirection) {
     s.f(5*i+4) = 1.1 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
   }
   s.set_f_3D();
-  ASSERT_TRUE(contact_force_inequality_.isFeasible(robot_, s));
+  ASSERT_TRUE(contact_force_constraint_.isFeasible(robot_, s));
   const int dimc = 6*robot_.num_point_contacts();
   ConstraintComponentData data(dimc);
   data.residual = Eigen::VectorXd::Random(dimc);
   SplitDirection d(robot_);
   d.df() = Eigen::VectorXd::Random(5*robot_.num_point_contacts());
-  contact_force_inequality_.computeSlackDirection(robot_, dtau_, s, d, data);
+  contact_force_constraint_.computeSlackDirection(robot_, dtau_, s, d, data);
   Eigen::MatrixXd g_f(Eigen::MatrixXd::Zero(6*robot_.num_point_contacts(), 
                                             5*robot_.num_point_contacts()));
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
@@ -232,33 +232,33 @@ TEST_F(FloatingBaseContactForceInequalityTest, computeSlackDirection) {
 }
 
 
-TEST_F(FloatingBaseContactForceInequalityTest, withoutContacts) {
+TEST_F(FloatingBaseContactForceConstraintTest, withoutContacts) {
   SplitSolution s(robot_);
   const std::string urdf = "../urdf/anymal/anymal.urdf";
   robot_ = Robot(urdf);
-  contact_force_inequality_ = ContactForceInequality(robot_, mu_);
-  EXPECT_TRUE(contact_force_inequality_.isFeasible(robot_, s));
+  contact_force_constraint_ = ContactForceConstraint(robot_, mu_);
+  EXPECT_TRUE(contact_force_constraint_.isFeasible(robot_, s));
   const int dimc = 6*robot_.num_point_contacts();
   ConstraintComponentData data(dimc);
-  contact_force_inequality_.setSlack(robot_, dtau_, s, data);
-  contact_force_inequality_.computePrimalResidual(robot_, dtau_, s, data);
+  contact_force_constraint_.setSlack(robot_, dtau_, s, data);
+  contact_force_constraint_.computePrimalResidual(robot_, dtau_, s, data);
   EXPECT_TRUE(data.residual.isZero());
   KKTResidual kkt_residual(robot_);
-  contact_force_inequality_.augmentDualResidual(robot_, dtau_, s, data, 
+  contact_force_constraint_.augmentDualResidual(robot_, dtau_, s, data, 
                                                 kkt_residual);
   EXPECT_TRUE(kkt_residual.KKT_residual.isZero());
   KKTMatrix kkt_matrix(robot_);
   Eigen::VectorXd diag = Eigen::VectorXd::Random(dimc);
-  contact_force_inequality_.augmentCondensedHessian(robot_, dtau_, s, diag, 
+  contact_force_constraint_.augmentCondensedHessian(robot_, dtau_, s, diag, 
                                                     kkt_matrix);
-  contact_force_inequality_.augmentCondensedResidual(robot_, dtau_, s, diag, 
+  contact_force_constraint_.augmentCondensedResidual(robot_, dtau_, s, diag, 
                                                      kkt_residual);
   EXPECT_TRUE(kkt_matrix.costHessian().isZero());
   EXPECT_TRUE(kkt_matrix.constraintsJacobian().isZero());
   EXPECT_TRUE(kkt_residual.KKT_residual.isZero());
   SplitDirection d(robot_);
   d.df() = Eigen::VectorXd::Random(5*robot_.num_point_contacts());
-  contact_force_inequality_.computeSlackDirection(robot_, dtau_, s, d, data);
+  contact_force_constraint_.computeSlackDirection(robot_, dtau_, s, d, data);
   EXPECT_TRUE(data.dslack.isZero());
 }
 

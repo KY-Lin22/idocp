@@ -1,4 +1,4 @@
-#include "idocp/complementarity/contact_force_inequality.hpp"
+#include "idocp/complementarity/contact_force_constraint.hpp"
 #include "idocp/constraints/pdipm_func.hpp"
 
 #include <exception>
@@ -7,14 +7,14 @@
 
 namespace idocp {
 
-inline ContactForceInequality::ContactForceInequality(const Robot& robot, 
+inline ContactForceConstraint::ContactForceConstraint(const Robot& robot, 
                                                       const double mu)
   : num_point_contacts_(robot.num_point_contacts()),
     dimc_(kDimc*robot.num_point_contacts()),
     mu_(mu) {
   f_rsc_.setZero();
   try {
-    if (mu < 0) {
+    if (mu <= 0) {
       throw std::out_of_range(
           "invalid argment: mu must be positive");
     }
@@ -26,7 +26,7 @@ inline ContactForceInequality::ContactForceInequality(const Robot& robot,
 }
 
 
-inline ContactForceInequality::ContactForceInequality() 
+inline ContactForceConstraint::ContactForceConstraint() 
   : num_point_contacts_(0),
     dimc_(0),
     mu_(0) {
@@ -34,11 +34,11 @@ inline ContactForceInequality::ContactForceInequality()
 }
 
 
-inline ContactForceInequality::~ContactForceInequality() {
+inline ContactForceConstraint::~ContactForceConstraint() {
 }
 
 
-inline bool ContactForceInequality::isFeasible(const Robot& robot, 
+inline bool ContactForceConstraint::isFeasible(const Robot& robot, 
                                                const SplitSolution& s) {
   if (s.f.minCoeff() < 0) {
     return false;
@@ -59,7 +59,7 @@ inline bool ContactForceInequality::isFeasible(const Robot& robot,
 }
 
 
-inline void ContactForceInequality::setSlack(const Robot& robot, 
+inline void ContactForceConstraint::setSlack(const Robot& robot, 
                                              const double dtau, 
                                              const SplitSolution& s,
                                              ConstraintComponentData& data) {
@@ -78,7 +78,7 @@ inline void ContactForceInequality::setSlack(const Robot& robot,
 }
 
 
-inline void ContactForceInequality::computePrimalResidual(
+inline void ContactForceConstraint::computePrimalResidual(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     ConstraintComponentData& data) {
   assert(dtau > 0);
@@ -98,7 +98,7 @@ inline void ContactForceInequality::computePrimalResidual(
 }
 
 
-inline void ContactForceInequality::augmentDualResidual(
+inline void ContactForceConstraint::augmentDualResidual(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     const ConstraintComponentData& data, KKTResidual& kkt_residual) {
   assert(dtau > 0);
@@ -123,7 +123,7 @@ inline void ContactForceInequality::augmentDualResidual(
 
 
 template <typename VectorType>
-inline void ContactForceInequality::augmentCondensedHessian(
+inline void ContactForceConstraint::augmentCondensedHessian(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     const Eigen::MatrixBase<VectorType>& diagonal, KKTMatrix& kkt_matrix) {
   assert(dtau > 0);
@@ -147,7 +147,7 @@ inline void ContactForceInequality::augmentCondensedHessian(
 
 
 template <typename VectorType>
-inline void ContactForceInequality::augmentCondensedResidual(
+inline void ContactForceConstraint::augmentCondensedResidual(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     const Eigen::MatrixBase<VectorType>& residual, KKTResidual& kkt_residual) {
   assert(dtau > 0);
@@ -169,7 +169,7 @@ inline void ContactForceInequality::augmentCondensedResidual(
 }
 
 
-inline void ContactForceInequality::computeSlackDirection(
+inline void ContactForceConstraint::computeSlackDirection(
     const Robot& robot, const double dtau, const SplitSolution& s,
     const SplitDirection& d, ConstraintComponentData& data) const {
   assert(dtau > 0);
@@ -191,9 +191,9 @@ inline void ContactForceInequality::computeSlackDirection(
 }
 
 
-inline void ContactForceInequality::set_mu(const double mu) {
+inline void ContactForceConstraint::set_mu(const double mu) {
   try {
-    if (mu < 0) {
+    if (mu <= 0) {
       throw std::out_of_range(
           "invalid argment: mu must be positive");
     }
@@ -206,7 +206,7 @@ inline void ContactForceInequality::set_mu(const double mu) {
 }
 
 
-inline double ContactForceInequality::mu() const {
+inline double ContactForceConstraint::mu() const {
   return mu_;
 }
 
