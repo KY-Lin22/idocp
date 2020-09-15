@@ -10,15 +10,18 @@ inline RobotDynamics::RobotDynamics(const Robot& robot)
     du_dq_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     du_dv_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     du_da_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
-    du_df_(Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts())),
-    du_df_minimum_(Eigen::MatrixXd::Zero(robot.dimv(), 3*robot.num_point_contacts())),
+    du_df_(Eigen::MatrixXd::Zero(robot.dimv(), 
+                                 kDimf*robot.num_point_contacts())),
+    du_df_3D_(Eigen::MatrixXd::Zero(robot.dimv(), 
+                                    3*robot.num_point_contacts())),
     Quu_du_dq_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     Quu_du_dv_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
     Quu_du_da_(Eigen::MatrixXd::Zero(robot.dimv(), robot.dimv())),
-    Quu_du_df_(Eigen::MatrixXd::Zero(robot.dimv(), 7*robot.num_point_contacts())),
+    Quu_du_df_(Eigen::MatrixXd::Zero(robot.dimv(), 
+                                     kDimf*robot.num_point_contacts())),
     has_floating_base_(robot.has_floating_base()),
     has_contacts_(robot.has_contacts()),
-    dimf_(7*robot.num_point_contacts()) {
+    dimf_(kDimf*robot.num_point_contacts()) {
 }
 
 
@@ -28,7 +31,7 @@ inline RobotDynamics::RobotDynamics()
     du_dv_(),
     du_da_(),
     du_df_(),
-    du_df_minimum_(),
+    du_df_3D_(),
     Quu_du_dq_(),
     Quu_du_dv_(),
     Quu_du_da_(),
@@ -47,6 +50,7 @@ inline void RobotDynamics::augmentRobotDynamics(Robot& robot, const double dtau,
                                                 const SplitSolution& s, 
                                                 KKTMatrix& kkt_matrix, 
                                                 KKTResidual& kkt_residual) {
+  assert(dtau > 0);
   linearizeInverseDynamics(robot, s, kkt_residual);
   // augment inverse dynamics
   kkt_residual.la().noalias() += dtau * du_da_.transpose() * s.beta;
@@ -66,6 +70,7 @@ inline void RobotDynamics::condenseRobotDynamics(Robot& robot,
                                                  const SplitSolution& s, 
                                                  KKTMatrix& kkt_matrix, 
                                                  KKTResidual& kkt_residual) {
+  assert(dtau > 0);
   linearizeInverseDynamics(robot, s, kkt_residual);
   lu_condensed_.noalias() 
       = kkt_residual.lu + kkt_matrix.Quu * kkt_residual.u_res;
@@ -137,6 +142,7 @@ inline void RobotDynamics::computeCondensedDirection(
 inline double RobotDynamics::violationL1Norm(const double dtau, 
                                              const SplitSolution& s,
                                              KKTResidual& kkt_residual) const {
+  assert(dtau > 0);
   double violation = dtau * kkt_residual.u_res.lpNorm<1>();
   if (has_floating_base_) {
     violation += dtau * s.u.template head<kDimFloatingBase>().lpNorm<1>();
@@ -149,7 +155,7 @@ inline double RobotDynamics::computeViolationL1Norm(
     Robot& robot, const double dtau, const SplitSolution& s, 
     KKTResidual& kkt_residual) const {
   if (robot.has_contacts()) {
-    robot.setContactForces(s.f);
+    robot.setContactForces(s.f_3D);
   }
   robot.RNEA(s.q, s.v, s.a, kkt_residual.u_res);
   kkt_residual.u_res.noalias() -= s.u;
@@ -198,23 +204,22 @@ inline void RobotDynamics::linearizeInverseDynamics(Robot& robot,
                                                     const SplitSolution& s, 
                                                     KKTResidual& kkt_residual) {
   if (robot.has_contacts()) {
-    robot.setContactForces(s.f);
+    robot.setContactForces(s.f_3D);
   }
   robot.RNEA(s.q, s.v, s.a, kkt_residual.u_res);
   kkt_residual.u_res.noalias() -= s.u;
   robot.RNEADerivatives(s.q, s.v, s.a, du_dq_, du_dv_, du_da_);
   if (robot.has_contacts()) {
-    robot.dRNEAPartialdFext(du_df_minimum_);
+    robot.dRNEAPartialdFext(du_df_3D_);
     for (int i=0; i<robot.num_point_contacts(); ++i) {
-      constexpr int kDimf_verbose = 7;
-      constexpr int kDimf_minimum = 3;
-      du_df_.col(kDimf_verbose*i  )  = du_df_minimum_.col(kDimf_minimum*i  );
-      du_df_.col(kDimf_verbose*i+1)  = - du_df_minimum_.col(kDimf_minimum*i  );
-      du_df_.col(kDimf_verbose*i+2)  = du_df_minimum_.col(kDimf_minimum*i+1);
-      du_df_.col(kDimf_verbose*i+3)  = - du_df_minimum_.col(kDimf_minimum*i+1);
-      du_df_.col(kDimf_verbose*i+4)  = du_df_minimum_.col(kDimf_minimum*i+2);
-      assert(du_df_.col(kDimf_verbose*i+5).isZero());
-      assert(du_df_.col(kDimf_verbose*i+6).isZero());
+      assert(s.f_3D.coeff(3*i  ) == s.f.coeff(5*i  )-s.f.coeff(5*i+1));
+      assert(s.f_3D.coeff(3*i+1) == s.f.coeff(5*i+2)-s.f.coeff(5*i+3));
+      assert(s.f_3D.coeff(3*i+2) == s.f.coeff(5*i+4));
+      du_df_.col(kDimf*i  )  =   du_df_3D_.col(3*i  );
+      du_df_.col(kDimf*i+1)  = - du_df_3D_.col(3*i  );
+      du_df_.col(kDimf*i+2)  =   du_df_3D_.col(3*i+1);
+      du_df_.col(kDimf*i+3)  = - du_df_3D_.col(3*i+1);
+      du_df_.col(kDimf*i+4)  =   du_df_3D_.col(3*i+2);
     }
   }
 }

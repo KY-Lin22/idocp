@@ -63,8 +63,8 @@ add_library(
   src/ocp/kkt_matrix.cpp
   src/ocp/split_solution.cpp
   src/ocp/split_direction.cpp
-  # src/ocp/state_equation.cpp
-  # src/ocp/robot_dynamics.cpp
+  src/ocp/state_equation.cpp
+  src/ocp/robot_dynamics.cpp
   # src/ocp/riccati_factorization.cpp
   # src/ocp/riccati_gain.cpp
   # src/ocp/riccati_matrix_factorizer.cpp
