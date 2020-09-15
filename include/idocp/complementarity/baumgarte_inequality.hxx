@@ -111,7 +111,8 @@ inline void BaumgarteInequality::computePrimalResidual(
     data.residual.coeffRef(kDimc*i+4) 
         -= dtau * Baumgarte_residual_.coeff(3*i+2); 
     data.residual.coeffRef(kDimc*i+5) 
-        -= dtau * (s.r.coeff(2*i)*s.r.coeff(2*i)+s.r.coeff(2*i+1)*s.r.coeff(2*i+1));
+        -= dtau * (s.r.coeff(2*i)*s.r.coeff(2*i)
+                    + s.r.coeff(2*i+1)*s.r.coeff(2*i+1));
   }
 }
 
@@ -248,17 +249,20 @@ inline void BaumgarteInequality::augmentComplementarityCondensedHessian(
     Qfr_rsc_.coeffRef(1, 0) += (dtau*dtau) * diagonal.coeff(kDimc*i+1);
     Qfr_rsc_.coeffRef(2, 1) += (dtau*dtau) * diagonal.coeff(kDimc*i+2);
     Qfr_rsc_.coeffRef(3, 1) += (dtau*dtau) * diagonal.coeff(kDimc*i+3);
-    kkt_matrix.Qfr().template block<kDimf, 2>(kDimf*i, 2*i).noalias() += Qfr_rsc_;
+    kkt_matrix.Qfr().template block<kDimf, 2>(kDimf*i, 2*i).noalias() 
+        += Qfr_rsc_;
   }
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     kkt_matrix.Qfq().block(kDimf*i, 0, kDimf, robot.dimv()).noalias() 
         += (dtau*dtau) * diagonal.template segment<kDimf>(kDimc*i).asDiagonal() 
-                       * dBaumgarte_verbose_dq_.block(kDimc*i, 0, kDimf, robot.dimv());
+                       * dBaumgarte_verbose_dq_.block(kDimc*i, 0,  
+                                                      kDimf, robot.dimv());
   }
   for (int i=0; i<robot.num_point_contacts(); ++i) {
     kkt_matrix.Qfv().block(kDimf*i, 0, kDimf, robot.dimv()).noalias() 
         += (dtau*dtau) * diagonal.template segment<kDimf>(kDimc*i).asDiagonal() 
-                       * dBaumgarte_verbose_dv_.block(kDimc*i, 0, kDimf, robot.dimv());
+                       * dBaumgarte_verbose_dv_.block(kDimc*i, 0, 
+                                                      kDimf, robot.dimv());
   }
 }
 

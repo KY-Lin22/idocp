@@ -18,7 +18,7 @@
 
 namespace idocp {
 
-class FixedBaseContactComplementarityTest : public ::testing::Test {
+class FloatingBaseContactComplementarityTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
     srand((unsigned int) time(0));
@@ -27,8 +27,8 @@ protected:
     barrier_ = 1.0e-04;
     dtau_ = std::abs(Eigen::VectorXd::Random(1)[0]);
     fraction_to_boundary_rate_ = 0.995;
-    const std::vector<int> contact_frames = {18};
-    const std::string urdf = "../urdf/iiwa14/iiwa14.urdf";
+    const std::vector<int> contact_frames = {14, 24, 34, 44};
+    const std::string urdf = "../urdf/anymal/anymal.urdf";
     robot_ = Robot(urdf, contact_frames, 0, 0);
     contact_complementarity_ = ContactComplementarity(
         robot_, mu_, max_complementarity_violation_, barrier_, 
@@ -55,12 +55,12 @@ protected:
 };
 
 
-TEST_F(FixedBaseContactComplementarityTest, isFeasible) {
+TEST_F(FloatingBaseContactComplementarityTest, isFeasible) {
   SplitSolution s(robot_);
-  ASSERT_TRUE(s.f.size() == 5);
-  ASSERT_TRUE(s.f_3D.size() == 3);
-  ASSERT_TRUE(s.r.size() == 2);
-  ASSERT_TRUE(robot_.num_point_contacts() == 1);
+  ASSERT_TRUE(s.f.size() == 20);
+  ASSERT_TRUE(s.f_3D.size() == 12);
+  ASSERT_TRUE(s.r.size() == 8);
+  ASSERT_TRUE(robot_.num_point_contacts() == 4);
   s.q = Eigen::VectorXd::Random(robot_.dimq());
   robot_.generateFeasibleConfiguration(s.q);
   s.v = Eigen::VectorXd::Random(robot_.dimv());
@@ -75,7 +75,9 @@ TEST_F(FixedBaseContactComplementarityTest, isFeasible) {
   EXPECT_FALSE(contact_complementarity_.residualL1Nrom() == 0);
   EXPECT_FALSE(contact_complementarity_.squaredKKTErrorNorm() == 0);
   s.set_f_3D();
-  s.f(4) = 1.1 * std::sqrt((s.f_3D(0)*s.f_3D(0)+s.f_3D(1)*s.f_3D(1))/(mu_*mu_));
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    s.f(5*i+4) = 1.1 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
+  }
   s.set_f_3D();
   s.r = - Eigen::VectorXd::Random(2*robot_.num_point_contacts()).array().abs();
   EXPECT_FALSE(contact_complementarity_.isFeasible(robot_, s));
@@ -86,7 +88,7 @@ TEST_F(FixedBaseContactComplementarityTest, isFeasible) {
 }
 
 
-TEST_F(FixedBaseContactComplementarityTest, setSlackAndDual) {
+TEST_F(FloatingBaseContactComplementarityTest, setSlackAndDual) {
   SplitSolution s(robot_);
   s.q = Eigen::VectorXd::Random(robot_.dimq());
   robot_.generateFeasibleConfiguration(s.q);
@@ -95,7 +97,9 @@ TEST_F(FixedBaseContactComplementarityTest, setSlackAndDual) {
   robot_.updateKinematics(s.q, s.v, s.a);
   s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
   s.set_f_3D();
-  s.f(4) = 1.1 * std::sqrt((s.f_3D(0)*s.f_3D(0)+s.f_3D(1)*s.f_3D(1))/(mu_*mu_));
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    s.f(5*i+4) = 1.1 * std::sqrt((s.f_3D(3*i)*s.f_3D(3*i)+s.f_3D(3*i+1)*s.f_3D(3*i+1))/(mu_*mu_));
+  }
   s.set_f_3D();
   s.r = Eigen::VectorXd::Random(2*robot_.num_point_contacts()).array().abs();
   contact_complementarity_.setSlackAndDual(robot_, dtau_, s);
@@ -103,7 +107,7 @@ TEST_F(FixedBaseContactComplementarityTest, setSlackAndDual) {
 }
 
 
-TEST_F(FixedBaseContactComplementarityTest, computeResidual) {
+TEST_F(FloatingBaseContactComplementarityTest, computeResidual) {
   SplitSolution s(robot_);
   s.q = Eigen::VectorXd::Random(robot_.dimq());
   robot_.generateFeasibleConfiguration(s.q);
@@ -135,7 +139,7 @@ TEST_F(FixedBaseContactComplementarityTest, computeResidual) {
 }
 
 
-TEST_F(FixedBaseContactComplementarityTest, augmentDualResidual) {
+TEST_F(FloatingBaseContactComplementarityTest, augmentDualResidual) {
   SplitSolution s(robot_);
   s.q = Eigen::VectorXd::Random(robot_.dimq());
   robot_.generateFeasibleConfiguration(s.q);
@@ -168,49 +172,60 @@ TEST_F(FixedBaseContactComplementarityTest, augmentDualResidual) {
     if (force_data_.dual.coeff(i) < barrier_) force_data_.dual.coeffRef(i) = barrier_;
     if (baum_data_.dual.coeff(i) < barrier_) baum_data_.dual.coeffRef(i) = barrier_;
   }
+  std::cout << "AAA" << std::endl;
   Eigen::MatrixXd force_jac_df(Eigen::MatrixXd::Zero(dimc_, s.f.size()));
-  force_jac_df(0, 0) = dtau_;
-  force_jac_df(1, 1) = dtau_;
-  force_jac_df(2, 2) = dtau_;
-  force_jac_df(3, 3) = dtau_;
-  force_jac_df(4, 4) = dtau_;
-  force_jac_df(5, 0) = - 2 * dtau_ * s.f_3D(0);
-  force_jac_df(5, 1) = 2 * dtau_ * s.f_3D(0);
-  force_jac_df(5, 2) = - 2 * dtau_ * s.f_3D(1);
-  force_jac_df(5, 3) = 2 * dtau_ * s.f_3D(1);
-  force_jac_df(5, 4) = 2 * mu_ * mu_ * dtau_ * s.f_3D(2);
-  Eigen::MatrixXd dbaum_dq(Eigen::MatrixXd::Zero(3, robot_.dimv()));
-  Eigen::MatrixXd dbaum_dv(Eigen::MatrixXd::Zero(3, robot_.dimv()));
-  Eigen::MatrixXd dbaum_da(Eigen::MatrixXd::Zero(3, robot_.dimv()));
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    force_jac_df(6*i+0, 5*i+0) = dtau_;
+    force_jac_df(6*i+1, 5*i+1) = dtau_;
+    force_jac_df(6*i+2, 5*i+2) = dtau_;
+    force_jac_df(6*i+3, 5*i+3) = dtau_;
+    force_jac_df(6*i+4, 5*i+4) = dtau_;
+    force_jac_df(6*i+5, 5*i+0) = - 2 * dtau_ * s.f_3D(3*i+0);
+    force_jac_df(6*i+5, 5*i+1) = 2 * dtau_ * s.f_3D(3*i+0);
+    force_jac_df(6*i+5, 5*i+2) = - 2 * dtau_ * s.f_3D(3*i+1);
+    force_jac_df(6*i+5, 5*i+3) = 2 * dtau_ * s.f_3D(3*i+1);
+    force_jac_df(6*i+5, 5*i+4) = 2 * mu_ * mu_ * dtau_ * s.f_3D(3*i+2);
+  }
+  Eigen::MatrixXd dbaum_dq(Eigen::MatrixXd::Zero(s.f_3D.size(), robot_.dimv()));
+  Eigen::MatrixXd dbaum_dv(Eigen::MatrixXd::Zero(s.f_3D.size(), robot_.dimv()));
+  Eigen::MatrixXd dbaum_da(Eigen::MatrixXd::Zero(s.f_3D.size(), robot_.dimv()));
   robot_.computeBaumgarteDerivatives(dbaum_dq, dbaum_dv, dbaum_da); 
   Eigen::MatrixXd baum_jac_da(Eigen::MatrixXd::Zero(dimc_, robot_.dimv()));
   Eigen::MatrixXd baum_jac_dr(Eigen::MatrixXd::Zero(dimc_, s.r.size()));
   Eigen::MatrixXd baum_jac_dq(Eigen::MatrixXd::Zero(dimc_, robot_.dimv()));
   Eigen::MatrixXd baum_jac_dv(Eigen::MatrixXd::Zero(dimc_, robot_.dimv()));
-  baum_jac_da.row(0) =   dtau_ * dbaum_da.row(0);
-  baum_jac_da.row(1) = - dtau_ * dbaum_da.row(0);
-  baum_jac_da.row(2) =   dtau_ * dbaum_da.row(1);
-  baum_jac_da.row(3) = - dtau_ * dbaum_da.row(1);
-  baum_jac_da.row(4) =   dtau_ * dbaum_da.row(2);
-  baum_jac_da.row(5).setZero();
-  baum_jac_dr(0, 0) = dtau_;
-  baum_jac_dr(1, 0) = dtau_;
-  baum_jac_dr(2, 1) = dtau_;
-  baum_jac_dr(3, 1) = dtau_;
-  baum_jac_dr(5, 0) = 2 * dtau_ * s.r(0);
-  baum_jac_dr(5, 1) = 2 * dtau_ * s.r(1);
-  baum_jac_dq.row(0) =   dtau_ * dbaum_dq.row(0);
-  baum_jac_dq.row(1) = - dtau_ * dbaum_dq.row(0);
-  baum_jac_dq.row(2) =   dtau_ * dbaum_dq.row(1);
-  baum_jac_dq.row(3) = - dtau_ * dbaum_dq.row(1);
-  baum_jac_dq.row(4) =   dtau_ * dbaum_dq.row(2);
-  baum_jac_dq.row(5).setZero();
-  baum_jac_dv.row(0) =   dtau_ * dbaum_dv.row(0);
-  baum_jac_dv.row(1) = - dtau_ * dbaum_dv.row(0);
-  baum_jac_dv.row(2) =   dtau_ * dbaum_dv.row(1);
-  baum_jac_dv.row(3) = - dtau_ * dbaum_dv.row(1);
-  baum_jac_dv.row(4) =   dtau_ * dbaum_dv.row(2);
-  baum_jac_dv.row(5).setZero();
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    baum_jac_da.row(6*i+0) =   dtau_ * dbaum_da.row(3*i+0);
+    baum_jac_da.row(6*i+1) = - dtau_ * dbaum_da.row(3*i+0);
+    baum_jac_da.row(6*i+2) =   dtau_ * dbaum_da.row(3*i+1);
+    baum_jac_da.row(6*i+3) = - dtau_ * dbaum_da.row(3*i+1);
+    baum_jac_da.row(6*i+4) =   dtau_ * dbaum_da.row(3*i+2);
+    baum_jac_da.row(6*i+5).setZero();
+  }
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    baum_jac_dr(6*i+0, 2*i+0) = dtau_;
+    baum_jac_dr(6*i+1, 2*i+0) = dtau_;
+    baum_jac_dr(6*i+2, 2*i+1) = dtau_;
+    baum_jac_dr(6*i+3, 2*i+1) = dtau_;
+    baum_jac_dr(6*i+5, 2*i+0) = 2 * dtau_ * s.r(2*i  );
+    baum_jac_dr(6*i+5, 2*i+1) = 2 * dtau_ * s.r(2*i+1);
+  }
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    baum_jac_dq.row(6*i+0) =   dtau_ * dbaum_dq.row(3*i  );
+    baum_jac_dq.row(6*i+1) = - dtau_ * dbaum_dq.row(3*i  );
+    baum_jac_dq.row(6*i+2) =   dtau_ * dbaum_dq.row(3*i+1);
+    baum_jac_dq.row(6*i+3) = - dtau_ * dbaum_dq.row(3*i+1);
+    baum_jac_dq.row(6*i+4) =   dtau_ * dbaum_dq.row(3*i+2);
+    baum_jac_dq.row(6*i+5).setZero();
+  }
+  for (int i=0; i<robot_.num_point_contacts(); ++i) {
+    baum_jac_dv.row(6*i+0) =   dtau_ * dbaum_dv.row(3*i+0);
+    baum_jac_dv.row(6*i+1) = - dtau_ * dbaum_dv.row(3*i+0);
+    baum_jac_dv.row(6*i+2) =   dtau_ * dbaum_dv.row(3*i+1);
+    baum_jac_dv.row(6*i+3) = - dtau_ * dbaum_dv.row(3*i+1);
+    baum_jac_dv.row(6*i+4) =   dtau_ * dbaum_dv.row(3*i+2);
+    baum_jac_dv.row(6*i+5).setZero();
+  }
   kkt_residual_ref.la() = - baum_jac_da.transpose() * baum_data_.dual;
   kkt_residual_ref.lf() = - force_jac_df.transpose() * force_data_.dual;
   kkt_residual_ref.lr() = - baum_jac_dr.transpose() * baum_data_.dual;

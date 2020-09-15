@@ -204,24 +204,30 @@ inline void ContactComplementarity::computeSlackAndDualDirection(
     const Robot& robot, const double dtau, const SplitSolution& s, 
     const SplitDirection& d) {
   assert(dtau > 0);
-  contact_force_inequality_.computeSlackDirection(robot, dtau, s, d, contact_force_data_);
-  baumgarte_inequality_.computeSlackDirection(robot, dtau, s, d, baumgarte_data_);
+  contact_force_inequality_.computeSlackDirection(robot, dtau, s, d, 
+                                                  contact_force_data_);
+  baumgarte_inequality_.computeSlackDirection(robot, dtau, s, d, 
+                                              baumgarte_data_);
   complementarity_data_.dslack.array() 
       = - contact_force_data_.slack.array() * baumgarte_data_.dslack.array() 
         - baumgarte_data_.slack.array() * contact_force_data_.dslack.array()
         - complementarity_data_.residual.array();
   complementarity_data_.ddual.array() 
       = - g_w_.array() * complementarity_data_.dslack.array()
-        - complementarity_data_.duality.array() / complementarity_data_.slack.array();
+        - complementarity_data_.duality.array() 
+          / complementarity_data_.slack.array();
   contact_force_data_.ddual.array()
       = - s_g_.array() * contact_force_data_.dslack.array()
         - complementarity_data_.dual.array() * baumgarte_data_.dslack.array()
         - complementarity_data_.ddual.array() * baumgarte_data_.slack.array()
-        - contact_force_data_.duality.array() / contact_force_data_.slack.array();
+        - contact_force_data_.duality.array() 
+          / contact_force_data_.slack.array();
   baumgarte_data_.ddual.array()
       = - s_h_.array() * baumgarte_data_.dslack.array()
-        - complementarity_data_.dual.array() * contact_force_data_.dslack.array()
-        - complementarity_data_.ddual.array() * contact_force_data_.slack.array()
+        - complementarity_data_.dual.array() 
+            * contact_force_data_.dslack.array()
+        - complementarity_data_.ddual.array() 
+            * contact_force_data_.slack.array()
         - baumgarte_data_.duality.array() / baumgarte_data_.slack.array();
 }
 
@@ -229,7 +235,8 @@ inline void ContactComplementarity::computeSlackAndDualDirection(
 inline double ContactComplementarity::maxSlackStepSize() const {
   const double step_size_force 
       = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
-                                      contact_force_data_.slack, contact_force_data_.dslack);
+                                      contact_force_data_.slack, 
+                                      contact_force_data_.dslack);
   const double step_size_baumgarte
       = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
                                       baumgarte_data_.slack, 
@@ -246,7 +253,8 @@ inline double ContactComplementarity::maxSlackStepSize() const {
 inline double ContactComplementarity::maxDualStepSize() const {
   const double step_size_force 
       = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
-                                      contact_force_data_.dual, contact_force_data_.ddual);
+                                      contact_force_data_.dual, 
+                                      contact_force_data_.ddual);
   const double step_size_baumgarte
       = pdipmfunc::FractionToBoundary(dimc_, fraction_to_boundary_rate_, 
                                       baumgarte_data_.dual, 
@@ -265,7 +273,8 @@ inline void ContactComplementarity::updateSlack(const double step_size) {
   assert(step_size <= 1);
   contact_force_data_.slack.noalias() += step_size * contact_force_data_.dslack;
   baumgarte_data_.slack.noalias() += step_size * baumgarte_data_.dslack;
-  complementarity_data_.slack.noalias() += step_size * complementarity_data_.dslack;
+  complementarity_data_.slack.noalias() 
+      += step_size * complementarity_data_.dslack;
 }
 
 
@@ -274,7 +283,8 @@ inline void ContactComplementarity::updateDual(const double step_size) {
   assert(step_size <= 1);
   contact_force_data_.dual.noalias() += step_size * contact_force_data_.ddual;
   baumgarte_data_.dual.noalias() += step_size * baumgarte_data_.ddual;
-  complementarity_data_.dual.noalias() += step_size * complementarity_data_.ddual;
+  complementarity_data_.dual.noalias() 
+      += step_size * complementarity_data_.ddual;
 }
 
 
@@ -287,13 +297,20 @@ inline double ContactComplementarity::costSlackBarrier() const {
 }
 
 
-inline double ContactComplementarity::costSlackBarrier(const double step_size) const {
+inline double ContactComplementarity::costSlackBarrier(
+    const double step_size) const {
   assert(step_size > 0);
   assert(step_size <= 1);
   double cost = 0;
-  cost -= barrier_ * (contact_force_data_.slack+step_size*contact_force_data_.dslack).array().log().sum();
-  cost -= barrier_ * (baumgarte_data_.slack+step_size*baumgarte_data_.dslack).array().log().sum();
-  cost -= barrier_ * (complementarity_data_.slack+step_size*complementarity_data_.dslack).array().log().sum();
+  cost -= barrier_ * (contact_force_data_.slack
+                      + step_size
+                          * contact_force_data_.dslack).array().log().sum();
+  cost -= barrier_ * (baumgarte_data_.slack
+                      + step_size
+                          * baumgarte_data_.dslack).array().log().sum();
+  cost -= barrier_ * (complementarity_data_.slack
+                      + step_size
+                          * complementarity_data_.dslack).array().log().sum();
   return cost;
 }
 
@@ -312,6 +329,7 @@ inline double ContactComplementarity::residualL1Nrom() const {
 
 inline double ContactComplementarity::computeResidualL1Nrom(
     Robot& robot, const double dtau, const SplitSolution& s) {
+  assert(dtau > 0);
   computeResidual(robot, dtau, s);
   return residualL1Nrom();
 }
@@ -331,6 +349,7 @@ inline double ContactComplementarity::squaredKKTErrorNorm() const {
 
 inline double ContactComplementarity::computeSquaredKKTErrorNorm(
     Robot& robot, const double dtau, const SplitSolution& s) { 
+  assert(dtau > 0);
   computeResidual(robot, dtau, s);
   return squaredKKTErrorNorm();
 }

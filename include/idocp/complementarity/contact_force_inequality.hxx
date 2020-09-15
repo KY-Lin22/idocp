@@ -127,7 +127,8 @@ inline void ContactForceInequality::augmentCondensedHessian(
     f_rsc_.coeffRef(4) = mu_ * mu_ * s.f_3D.coeff(3*i+2);
     kkt_matrix.Qff().template block<kDimf, kDimf>(kDimf*i, kDimf*i).noalias()
         += (4*dtau*dtau*diagonal.coeff(kDimc*i+5)) * f_rsc_ * f_rsc_.transpose();
-    kkt_matrix.Qff().template block<kDimf, kDimf>(kDimf*i, kDimf*i).diagonal().noalias()
+    kkt_matrix.Qff().template block<kDimf, kDimf>(kDimf*i, 
+                                                  kDimf*i).diagonal().noalias()
         += (dtau*dtau) * diagonal.template segment<kDimf>(kDimc*i);
   }
 }
@@ -167,12 +168,12 @@ inline void ContactForceInequality::computeSlackDirection(
     data.dslack.template segment<kDimf>(kDimc*i) 
         = dtau * d.df().template segment<kDimf>(kDimf*i);
     data.dslack.coeffRef(kDimc*i+kDimf) 
-        = 2 * dtau * 
-            (s.f_3D.coeff(3*i  ) * (- d.df().coeff(kDimf*i  ) 
-                                    + d.df().coeff(kDimf*i+1))
-             + s.f_3D.coeff(3*i+1) * (- d.df().coeff(kDimf*i+2) 
-                                      + d.df().coeff(kDimf*i+3))
-             +  mu_ * mu_ * s.f_3D.coeff(3*i+2) * d.df().coeff(kDimf*i+4));
+        = 2 * dtau * (s.f_3D.coeff(3*i  ) * (- d.df().coeff(kDimf*i  ) 
+                                             + d.df().coeff(kDimf*i+1))
+                      + s.f_3D.coeff(3*i+1) * (- d.df().coeff(kDimf*i+2) 
+                                               + d.df().coeff(kDimf*i+3))
+                      +  mu_ * mu_ * s.f_3D.coeff(3*i+2) 
+                                   * d.df().coeff(kDimf*i+4));
   }
   data.dslack.noalias() -= data.residual;
 }
