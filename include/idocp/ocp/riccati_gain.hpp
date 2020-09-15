@@ -32,9 +32,9 @@ public:
 
   const Eigen::Block<const Eigen::MatrixXd> Kav() const;
 
-  const Eigen::Block<const Eigen::MatrixXd> Kfq() const;
+  const Eigen::Block<const Eigen::MatrixXd> Kfrq() const;
 
-  const Eigen::Block<const Eigen::MatrixXd> Kfv() const;
+  const Eigen::Block<const Eigen::MatrixXd> Kfrv() const;
 
   const Eigen::Block<const Eigen::MatrixXd> Kmuq() const;
 
@@ -42,22 +42,23 @@ public:
 
   const Eigen::VectorBlock<const Eigen::VectorXd> ka() const;
 
-  const Eigen::VectorBlock<const Eigen::VectorXd> kf() const;
+  const Eigen::VectorBlock<const Eigen::VectorXd> kfr() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> kmu() const;
 
   template <typename MatrixType1, typename MatrixType2, typename MatrixType3>
   void computeFeedbackGain(const Eigen::MatrixBase<MatrixType1>& Ginv, 
-                           const Eigen::MatrixBase<MatrixType2>& Qafqv, 
-                           const Eigen::MatrixBase<MatrixType3>& Cqv);
+                           const Eigen::MatrixBase<MatrixType2>& Q_afr_qv, 
+                           const Eigen::MatrixBase<MatrixType3>& C_qv);
 
   template <typename MatrixType, typename VectorType1, typename VectorType2>
   void computeFeedforward(const Eigen::MatrixBase<MatrixType>& Ginv, 
-                          const Eigen::MatrixBase<VectorType1>& laf, 
+                          const Eigen::MatrixBase<VectorType1>& l_afr, 
                           const Eigen::MatrixBase<VectorType2>& C);
 
 private:
-  int dimv_, dimf_, dimc_;
+  static constexpr int kDimfr = 7;
+  int dimv_, dimfr_, dimc_;
   Eigen::MatrixXd K_;
   Eigen::VectorXd k_;
 

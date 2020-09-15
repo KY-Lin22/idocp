@@ -12,12 +12,12 @@ namespace idocp {
 
 inline RiccatiGain::RiccatiGain(const Robot& robot) 
   : K_(Eigen::MatrixXd::Zero(
-          robot.dimv()+7*robot.num_point_contacts()+robot.dim_passive(), 
+          robot.dimv()+kDimfr*robot.num_point_contacts()+robot.dim_passive(), 
           2*robot.dimv())),
     k_(Eigen::VectorXd::Zero(
-          robot.dimv()+7*robot.num_point_contacts()+robot.dim_passive())),
+          robot.dimv()+kDimfr*robot.num_point_contacts()+robot.dim_passive())),
     dimv_(robot.dimv()),
-    dimf_(7*robot.num_point_contacts()),
+    dimfr_(kDimfr*robot.num_point_contacts()),
     dimc_(robot.dim_passive()) {
 }
 
@@ -26,7 +26,7 @@ inline RiccatiGain::RiccatiGain()
   : K_(),
     k_(),
     dimv_(0),
-    dimf_(0),
+    dimfr_(0),
     dimc_(0) {
 }
 
@@ -45,23 +45,23 @@ inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kav() const {
 }
 
 
-inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kfq() const {
-  return K_.block(dimv_, 0, dimf_, dimv_);
+inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kfrq() const {
+  return K_.block(dimv_, 0, dimfr_, dimv_);
 }
 
 
-inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kfv() const {
-  return K_.block(dimv_, dimv_, dimf_, dimv_);
+inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kfrv() const {
+  return K_.block(dimv_, dimv_, dimfr_, dimv_);
 }
 
 
 inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kmuq() const {
-  return K_.block(dimv_+dimf_, 0, dimc_, dimv_);
+  return K_.block(dimv_+dimfr_, 0, dimc_, dimv_);
 }
 
 
 inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kmuv() const {
-  return K_.block(dimv_+dimf_, dimv_, dimc_, dimv_);
+  return K_.block(dimv_+dimfr_, dimv_, dimc_, dimv_);
 }
 
 
@@ -70,45 +70,45 @@ inline const Eigen::VectorBlock<const Eigen::VectorXd> RiccatiGain::ka() const {
 }
 
 
-inline const Eigen::VectorBlock<const Eigen::VectorXd> RiccatiGain::kf() const {
-  return k_.segment(dimv_, dimf_);
+inline const Eigen::VectorBlock<const Eigen::VectorXd> RiccatiGain::kfr() const {
+  return k_.segment(dimv_, dimfr_);
 }
 
 
 inline const Eigen::VectorBlock<const Eigen::VectorXd> RiccatiGain::kmu() const {
-  return k_.segment(dimv_+dimf_, dimc_);
+  return k_.segment(dimv_+dimfr_, dimc_);
 }
 
 
 template <typename MatrixType1, typename MatrixType2, typename MatrixType3>
 inline void RiccatiGain::computeFeedbackGain(
     const Eigen::MatrixBase<MatrixType1>& Ginv, 
-    const Eigen::MatrixBase<MatrixType2>& Qafqv, 
-    const Eigen::MatrixBase<MatrixType3>& Cqv) {
-  const int dimaf = dimv_ + dimf_;
-  assert(Ginv.rows() == dimaf+dimc_);
-  assert(Ginv.cols() == dimaf+dimc_);
-  assert(Qafqv.rows() == dimaf);
-  assert(Qafqv.cols() == 2*dimv_);
-  assert(Cqv.rows() == dimc_);
-  assert(Cqv.cols() == 2*dimv_);
-  K_.topRows(dimaf+dimc_).noalias() = - Ginv.leftCols(dimaf) * Qafqv;
-  K_.topRows(dimaf+dimc_).noalias() -= Ginv.rightCols(dimc_) * Cqv;
+    const Eigen::MatrixBase<MatrixType2>& Q_afr_qv, 
+    const Eigen::MatrixBase<MatrixType3>& C_qv) {
+  const int dimafr = dimv_ + dimfr_;
+  assert(Ginv.rows() == dimafr+dimc_);
+  assert(Ginv.cols() == dimafr+dimc_);
+  assert(Q_afr_qv.rows() == dimafr);
+  assert(Q_afr_qv.cols() == 2*dimv_);
+  assert(C_qv.rows() == dimc_);
+  assert(C_qv.cols() == 2*dimv_);
+  K_.topRows(dimafr+dimc_).noalias() = - Ginv.leftCols(dimafr) * Q_afr_qv;
+  K_.topRows(dimafr+dimc_).noalias() -= Ginv.rightCols(dimc_) * C_qv;
 }
 
 
 template <typename MatrixType, typename VectorType1, typename VectorType2>
 inline void RiccatiGain::computeFeedforward(
     const Eigen::MatrixBase<MatrixType>& Ginv, 
-    const Eigen::MatrixBase<VectorType1>& laf, 
+    const Eigen::MatrixBase<VectorType1>& l_afr, 
     const Eigen::MatrixBase<VectorType2>& C) {
-  const int dimaf = dimv_ + dimf_;
-  assert(Ginv.rows() == dimaf+dimc_);
-  assert(Ginv.cols() == dimaf+dimc_);
-  assert(laf.size() == dimaf);
+  const int dimafr = dimv_ + dimfr_;
+  assert(Ginv.rows() == dimafr+dimc_);
+  assert(Ginv.cols() == dimafr+dimc_);
+  assert(l_afr.size() == dimafr);
   assert(C.size() == dimc_);
-  k_.head(dimaf+dimc_).noalias() = - Ginv.leftCols(dimaf) * laf;
-  k_.head(dimaf+dimc_).noalias() -= Ginv.rightCols(dimc_) * C;
+  k_.head(dimafr+dimc_).noalias() = - Ginv.leftCols(dimafr) * l_afr;
+  k_.head(dimafr+dimc_).noalias() -= Ginv.rightCols(dimc_) * C;
 }
 
 } // namespace idocp 
