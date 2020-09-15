@@ -234,6 +234,16 @@ inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Qxx() {
 }
 
 
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Q_fr_q() {
+  return Q_.block(f_begin_, q_begin_, dimf_+dimr_, dimv_);
+}
+
+
+inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Q_fr_v() {
+  return Q_.block(f_begin_, v_begin_, dimf_+dimr_, dimv_);
+}
+
+
 inline Eigen::Block<Eigen::MatrixXd> KKTMatrix::Q_afr_afr() {
   return Q_.block(a_begin_, a_begin_, dimv_+dimf_+dimr_, dimv_+dimf_+dimr_);
 }

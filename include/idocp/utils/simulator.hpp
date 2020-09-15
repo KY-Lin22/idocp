@@ -34,6 +34,6 @@ private:
 
 } // namespace idocp
 
-#include "simulator.hxx"
+#include "idocp/utils/simulator.hxx"
 
 #endif // IDOCP_UTILS_SIMULATOR_HPP_

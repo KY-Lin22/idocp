@@ -88,12 +88,12 @@ void BenchmarkWithContacts() {
   idocp::OCPBenchmarker<idocp::OCP> ocp_benchmarker("OCP for iiwa14 with contacts",
                                                     robot, cost, constraints, T, N, num_proc);
   ocp_benchmarker.setInitialGuessSolution(t, q, v);
-  ocp_benchmarker.testConvergence(t, q, v, 30, true);
+  ocp_benchmarker.testConvergence(t, q, v, 100, false);
   // ocp_benchmarker.testCPUTime(t, q, v);
-  idocp::OCPBenchmarker<idocp::ParNMPC> parnmpc_benchmarker("ParNMPC for iiwa14 with contacts",
-                                                            robot, cost, constraints, T, N, num_proc);
-  parnmpc_benchmarker.setInitialGuessSolution(t, q, v);
-  parnmpc_benchmarker.testConvergence(t, q, v, 30, true);
+  // idocp::OCPBenchmarker<idocp::ParNMPC> parnmpc_benchmarker("ParNMPC for iiwa14 with contacts",
+  //                                                           robot, cost, constraints, T, N, num_proc);
+  // parnmpc_benchmarker.setInitialGuessSolution(t, q, v);
+  // parnmpc_benchmarker.testConvergence(t, q, v, 30, false);
   // parnmpc_benchmarker.testCPUTime(t, q, v);
 }
 
@@ -102,7 +102,7 @@ void BenchmarkWithContacts() {
 
 
 int main() {
-  ocpbenchmark::iiwa14::BenchmarkWithoutContacts();
+  // ocpbenchmark::iiwa14::BenchmarkWithoutContacts();
   ocpbenchmark::iiwa14::BenchmarkWithContacts();
   return 0;
 }

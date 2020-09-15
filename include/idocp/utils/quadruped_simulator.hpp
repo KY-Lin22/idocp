@@ -49,6 +49,6 @@ private:
 
 } // namespace idocp
 
-#include "quadruped_simulator.hxx"
+#include "idocp/utils/quadruped_simulator.hxx"
 
 #endif // IDOCP_QUADRUPED_UTILS_SIMULATOR_HPP_

@@ -35,6 +35,8 @@ protected:
 TEST_F(RiccatiGainTest, fixed_base_without_contacts) {
   const int dimv = fixed_base_robot_.dimv();
   const int dimafr = fixed_base_robot_.dimv() + 7*fixed_base_robot_.num_point_contacts();
+  const int dimf = 5*fixed_base_robot_.num_point_contacts();
+  const int dimr = 2*fixed_base_robot_.num_point_contacts();
   const int dimfr = 7*fixed_base_robot_.num_point_contacts();
   const int dimc = fixed_base_robot_.dim_passive();
   ASSERT_EQ(dimfr, 0);
@@ -51,12 +53,16 @@ TEST_F(RiccatiGainTest, fixed_base_without_contacts) {
   const Eigen::MatrixXd K_ref = - Ginv * HC;
   ASSERT_EQ(K_ref.rows(), dimv);
   ASSERT_EQ(K_ref.cols(), 2*dimv);
-  EXPECT_TRUE(K_ref.topLeftCorner(dimv, dimv).isApprox(gain.Kaq()));
-  EXPECT_TRUE(K_ref.topRightCorner(dimv, dimv).isApprox(gain.Kav()));
-  EXPECT_TRUE(K_ref.block(dimv, 0, dimfr, dimv).isApprox(gain.Kfrq()));
-  EXPECT_TRUE(K_ref.block(dimv, dimv, dimfr, dimv).isApprox(gain.Kfrv()));
-  EXPECT_TRUE(K_ref.bottomLeftCorner(dimc, dimv).isApprox(gain.Kmuq()));
-  EXPECT_TRUE(K_ref.bottomRightCorner(dimc, dimv).isApprox(gain.Kmuv()));
+  EXPECT_TRUE(K_ref.block(         0,    0,  dimv, dimv).isApprox(gain.Kaq()));
+  EXPECT_TRUE(K_ref.block(         0, dimv,  dimv, dimv).isApprox(gain.Kav()));
+  EXPECT_TRUE(K_ref.block(      dimv,    0, dimfr, dimv).isApprox(gain.Kfrq()));
+  EXPECT_TRUE(K_ref.block(      dimv, dimv, dimfr, dimv).isApprox(gain.Kfrv()));
+  EXPECT_TRUE(K_ref.block(      dimv,    0,  dimf, dimv).isApprox(gain.Kfq()));
+  EXPECT_TRUE(K_ref.block(      dimv, dimv,  dimf, dimv).isApprox(gain.Kfv()));
+  EXPECT_TRUE(K_ref.block( dimv+dimf,    0,  dimr, dimv).isApprox(gain.Krq()));
+  EXPECT_TRUE(K_ref.block( dimv+dimf,  dimv, dimr, dimv).isApprox(gain.Krv()));
+  EXPECT_TRUE(K_ref.block(dimv+dimfr,    0,  dimc, dimv).isApprox(gain.Kmuq()));
+  EXPECT_TRUE(K_ref.block(dimv+dimfr, dimv,  dimc, dimv).isApprox(gain.Kmuv()));
   const Eigen::VectorXd l_afr = Eigen::VectorXd::Random(dimafr);
   const Eigen::VectorXd C = Eigen::VectorXd::Random(dimc);
   gain.computeFeedforward(Ginv, l_afr, C);
@@ -65,9 +71,11 @@ TEST_F(RiccatiGainTest, fixed_base_without_contacts) {
   h.tail(dimc) = C;
   const Eigen::VectorXd k_ref = - Ginv * h;
   ASSERT_EQ(k_ref.size(), dimv);
-  EXPECT_TRUE(k_ref.head(dimv).isApprox(gain.ka()));
-  EXPECT_TRUE(k_ref.segment(dimv, dimfr).isApprox(gain.kfr()));
-  EXPECT_TRUE(k_ref.tail(dimc).isApprox(gain.kmu()));
+  EXPECT_TRUE(k_ref.segment(         0,  dimv).isApprox(gain.ka()));
+  EXPECT_TRUE(k_ref.segment(      dimv, dimfr).isApprox(gain.kfr()));
+  EXPECT_TRUE(k_ref.segment(      dimv,  dimf).isApprox(gain.kf()));
+  EXPECT_TRUE(k_ref.segment( dimv+dimf,  dimr).isApprox(gain.kr()));
+  EXPECT_TRUE(k_ref.segment(dimv+dimfr,  dimc).isApprox(gain.kmu()));
 }
 
 
@@ -76,6 +84,8 @@ TEST_F(RiccatiGainTest, fixed_base_with_contacts) {
   fixed_base_robot_ = Robot(fixed_base_urdf_, contact_frames, 0, 0);
   const int dimv = fixed_base_robot_.dimv();
   const int dimafr = fixed_base_robot_.dimv() + 7*fixed_base_robot_.num_point_contacts();
+  const int dimf = 5*fixed_base_robot_.num_point_contacts();
+  const int dimr = 2*fixed_base_robot_.num_point_contacts();
   const int dimfr = 7*fixed_base_robot_.num_point_contacts();
   const int dimc = fixed_base_robot_.dim_passive();
   ASSERT_EQ(dimfr, 7);
@@ -92,12 +102,16 @@ TEST_F(RiccatiGainTest, fixed_base_with_contacts) {
   const Eigen::MatrixXd K_ref = - Ginv * HC;
   ASSERT_EQ(K_ref.rows(), dimafr);
   ASSERT_EQ(K_ref.cols(), 2*dimv);
-  EXPECT_TRUE(K_ref.topLeftCorner(dimv, dimv).isApprox(gain.Kaq()));
-  EXPECT_TRUE(K_ref.topRightCorner(dimv, dimv).isApprox(gain.Kav()));
-  EXPECT_TRUE(K_ref.block(dimv, 0, dimfr, dimv).isApprox(gain.Kfrq()));
-  EXPECT_TRUE(K_ref.block(dimv, dimv, dimfr, dimv).isApprox(gain.Kfrv()));
-  EXPECT_TRUE(K_ref.bottomLeftCorner(dimc, dimv).isApprox(gain.Kmuq()));
-  EXPECT_TRUE(K_ref.bottomRightCorner(dimc, dimv).isApprox(gain.Kmuv()));
+  EXPECT_TRUE(K_ref.block(         0,    0,  dimv, dimv).isApprox(gain.Kaq()));
+  EXPECT_TRUE(K_ref.block(         0, dimv,  dimv, dimv).isApprox(gain.Kav()));
+  EXPECT_TRUE(K_ref.block(      dimv,    0, dimfr, dimv).isApprox(gain.Kfrq()));
+  EXPECT_TRUE(K_ref.block(      dimv, dimv, dimfr, dimv).isApprox(gain.Kfrv()));
+  EXPECT_TRUE(K_ref.block(      dimv,    0,  dimf, dimv).isApprox(gain.Kfq()));
+  EXPECT_TRUE(K_ref.block(      dimv, dimv,  dimf, dimv).isApprox(gain.Kfv()));
+  EXPECT_TRUE(K_ref.block( dimv+dimf,    0,  dimr, dimv).isApprox(gain.Krq()));
+  EXPECT_TRUE(K_ref.block( dimv+dimf,  dimv, dimr, dimv).isApprox(gain.Krv()));
+  EXPECT_TRUE(K_ref.block(dimv+dimfr,    0,  dimc, dimv).isApprox(gain.Kmuq()));
+  EXPECT_TRUE(K_ref.block(dimv+dimfr, dimv,  dimc, dimv).isApprox(gain.Kmuv()));
   const Eigen::VectorXd l_afr = Eigen::VectorXd::Random(dimafr);
   const Eigen::VectorXd C = Eigen::VectorXd::Random(dimc);
   gain.computeFeedforward(Ginv, l_afr, C);
@@ -106,15 +120,19 @@ TEST_F(RiccatiGainTest, fixed_base_with_contacts) {
   h.tail(dimc) = C;
   const Eigen::VectorXd k_ref = - Ginv * h;
   ASSERT_EQ(k_ref.size(), dimafr);
-  EXPECT_TRUE(k_ref.head(dimv).isApprox(gain.ka()));
-  EXPECT_TRUE(k_ref.segment(dimv, dimfr).isApprox(gain.kfr()));
-  EXPECT_TRUE(k_ref.tail(dimc).isApprox(gain.kmu()));
+  EXPECT_TRUE(k_ref.segment(         0,  dimv).isApprox(gain.ka()));
+  EXPECT_TRUE(k_ref.segment(      dimv, dimfr).isApprox(gain.kfr()));
+  EXPECT_TRUE(k_ref.segment(      dimv,  dimf).isApprox(gain.kf()));
+  EXPECT_TRUE(k_ref.segment( dimv+dimf,  dimr).isApprox(gain.kr()));
+  EXPECT_TRUE(k_ref.segment(dimv+dimfr,  dimc).isApprox(gain.kmu()));
 }
 
 
 TEST_F(RiccatiGainTest, floating_base_without_contacts) {
   const int dimv = floating_base_robot_.dimv();
   const int dimafr = floating_base_robot_.dimv() + 7*floating_base_robot_.num_point_contacts();
+  const int dimf = 5*floating_base_robot_.num_point_contacts();
+  const int dimr = 2*floating_base_robot_.num_point_contacts();
   const int dimfr = 7*floating_base_robot_.num_point_contacts();
   const int dimc = floating_base_robot_.dim_passive();
   ASSERT_EQ(dimfr, 0);
@@ -131,12 +149,16 @@ TEST_F(RiccatiGainTest, floating_base_without_contacts) {
   const Eigen::MatrixXd K_ref = - Ginv * HC;
   ASSERT_EQ(K_ref.rows(), dimv+dimc);
   ASSERT_EQ(K_ref.cols(), 2*dimv);
-  EXPECT_TRUE(K_ref.topLeftCorner(dimv, dimv).isApprox(gain.Kaq()));
-  EXPECT_TRUE(K_ref.topRightCorner(dimv, dimv).isApprox(gain.Kav()));
-  EXPECT_TRUE(K_ref.block(dimv, 0, dimfr, dimv).isApprox(gain.Kfrq()));
-  EXPECT_TRUE(K_ref.block(dimv, dimv, dimfr, dimv).isApprox(gain.Kfrv()));
-  EXPECT_TRUE(K_ref.bottomLeftCorner(dimc, dimv).isApprox(gain.Kmuq()));
-  EXPECT_TRUE(K_ref.bottomRightCorner(dimc, dimv).isApprox(gain.Kmuv()));
+  EXPECT_TRUE(K_ref.block(         0,    0,  dimv, dimv).isApprox(gain.Kaq()));
+  EXPECT_TRUE(K_ref.block(         0, dimv,  dimv, dimv).isApprox(gain.Kav()));
+  EXPECT_TRUE(K_ref.block(      dimv,    0, dimfr, dimv).isApprox(gain.Kfrq()));
+  EXPECT_TRUE(K_ref.block(      dimv, dimv, dimfr, dimv).isApprox(gain.Kfrv()));
+  EXPECT_TRUE(K_ref.block(      dimv,    0,  dimf, dimv).isApprox(gain.Kfq()));
+  EXPECT_TRUE(K_ref.block(      dimv, dimv,  dimf, dimv).isApprox(gain.Kfv()));
+  EXPECT_TRUE(K_ref.block( dimv+dimf,    0,  dimr, dimv).isApprox(gain.Krq()));
+  EXPECT_TRUE(K_ref.block( dimv+dimf,  dimv, dimr, dimv).isApprox(gain.Krv()));
+  EXPECT_TRUE(K_ref.block(dimv+dimfr,    0,  dimc, dimv).isApprox(gain.Kmuq()));
+  EXPECT_TRUE(K_ref.block(dimv+dimfr, dimv,  dimc, dimv).isApprox(gain.Kmuv()));
   const Eigen::VectorXd l_afr = Eigen::VectorXd::Random(dimafr);
   const Eigen::VectorXd C = Eigen::VectorXd::Random(dimc);
   gain.computeFeedforward(Ginv, l_afr, C);
@@ -145,9 +167,11 @@ TEST_F(RiccatiGainTest, floating_base_without_contacts) {
   h.tail(dimc) = C;
   const Eigen::VectorXd k_ref = - Ginv * h;
   ASSERT_EQ(k_ref.size(), dimv+dimc);
-  EXPECT_TRUE(k_ref.head(dimv).isApprox(gain.ka()));
-  EXPECT_TRUE(k_ref.segment(dimv, dimfr).isApprox(gain.kfr()));
-  EXPECT_TRUE(k_ref.tail(dimc).isApprox(gain.kmu()));
+  EXPECT_TRUE(k_ref.segment(         0,  dimv).isApprox(gain.ka()));
+  EXPECT_TRUE(k_ref.segment(      dimv, dimfr).isApprox(gain.kfr()));
+  EXPECT_TRUE(k_ref.segment(      dimv,  dimf).isApprox(gain.kf()));
+  EXPECT_TRUE(k_ref.segment( dimv+dimf,  dimr).isApprox(gain.kr()));
+  EXPECT_TRUE(k_ref.segment(dimv+dimfr,  dimc).isApprox(gain.kmu()));
 }
 
 
@@ -156,6 +180,8 @@ TEST_F(RiccatiGainTest, floating_base_with_contacts) {
   floating_base_robot_ = Robot(floating_base_urdf_, contact_frames, 0, 0);
   const int dimv = floating_base_robot_.dimv();
   const int dimafr = floating_base_robot_.dimv() + 7*floating_base_robot_.num_point_contacts();
+  const int dimf = 5*floating_base_robot_.num_point_contacts();
+  const int dimr = 2*floating_base_robot_.num_point_contacts();
   const int dimfr = 7*floating_base_robot_.num_point_contacts();
   const int dimc = floating_base_robot_.dim_passive();
   ASSERT_EQ(dimfr, 28);
@@ -172,12 +198,16 @@ TEST_F(RiccatiGainTest, floating_base_with_contacts) {
   const Eigen::MatrixXd K_ref = - Ginv * HC;
   ASSERT_EQ(K_ref.rows(), dimafr+dimc);
   ASSERT_EQ(K_ref.cols(), 2*dimv);
-  EXPECT_TRUE(K_ref.topLeftCorner(dimv, dimv).isApprox(gain.Kaq()));
-  EXPECT_TRUE(K_ref.topRightCorner(dimv, dimv).isApprox(gain.Kav()));
-  EXPECT_TRUE(K_ref.block(dimv, 0, dimfr, dimv).isApprox(gain.Kfrq()));
-  EXPECT_TRUE(K_ref.block(dimv, dimv, dimfr, dimv).isApprox(gain.Kfrv()));
-  EXPECT_TRUE(K_ref.bottomLeftCorner(dimc, dimv).isApprox(gain.Kmuq()));
-  EXPECT_TRUE(K_ref.bottomRightCorner(dimc, dimv).isApprox(gain.Kmuv()));
+  EXPECT_TRUE(K_ref.block(         0,    0,  dimv, dimv).isApprox(gain.Kaq()));
+  EXPECT_TRUE(K_ref.block(         0, dimv,  dimv, dimv).isApprox(gain.Kav()));
+  EXPECT_TRUE(K_ref.block(      dimv,    0, dimfr, dimv).isApprox(gain.Kfrq()));
+  EXPECT_TRUE(K_ref.block(      dimv, dimv, dimfr, dimv).isApprox(gain.Kfrv()));
+  EXPECT_TRUE(K_ref.block(      dimv,    0,  dimf, dimv).isApprox(gain.Kfq()));
+  EXPECT_TRUE(K_ref.block(      dimv, dimv,  dimf, dimv).isApprox(gain.Kfv()));
+  EXPECT_TRUE(K_ref.block( dimv+dimf,    0,  dimr, dimv).isApprox(gain.Krq()));
+  EXPECT_TRUE(K_ref.block( dimv+dimf,  dimv, dimr, dimv).isApprox(gain.Krv()));
+  EXPECT_TRUE(K_ref.block(dimv+dimfr,    0,  dimc, dimv).isApprox(gain.Kmuq()));
+  EXPECT_TRUE(K_ref.block(dimv+dimfr, dimv,  dimc, dimv).isApprox(gain.Kmuv()));
   const Eigen::VectorXd l_afr = Eigen::VectorXd::Random(dimafr);
   const Eigen::VectorXd C = Eigen::VectorXd::Random(dimc);
   gain.computeFeedforward(Ginv, l_afr, C);
@@ -186,9 +216,11 @@ TEST_F(RiccatiGainTest, floating_base_with_contacts) {
   h.tail(dimc) = C;
   const Eigen::VectorXd k_ref = - Ginv * h;
   ASSERT_EQ(k_ref.size(), dimafr+dimc);
-  EXPECT_TRUE(k_ref.head(dimv).isApprox(gain.ka()));
-  EXPECT_TRUE(k_ref.segment(dimv, dimfr).isApprox(gain.kfr()));
-  EXPECT_TRUE(k_ref.tail(dimc).isApprox(gain.kmu()));
+  EXPECT_TRUE(k_ref.segment(         0,  dimv).isApprox(gain.ka()));
+  EXPECT_TRUE(k_ref.segment(      dimv, dimfr).isApprox(gain.kfr()));
+  EXPECT_TRUE(k_ref.segment(      dimv,  dimf).isApprox(gain.kf()));
+  EXPECT_TRUE(k_ref.segment( dimv+dimf,  dimr).isApprox(gain.kr()));
+  EXPECT_TRUE(k_ref.segment(dimv+dimfr,  dimc).isApprox(gain.kmu()));
 }
 
 

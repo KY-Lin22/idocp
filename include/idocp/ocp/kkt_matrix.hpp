@@ -96,6 +96,10 @@ public:
 
   Eigen::Block<Eigen::MatrixXd> Qxx();
 
+  Eigen::Block<Eigen::MatrixXd> Q_fr_q();
+
+  Eigen::Block<Eigen::MatrixXd> Q_fr_v();
+
   Eigen::Block<Eigen::MatrixXd> Q_afr_afr();
 
   Eigen::Block<Eigen::MatrixXd> Q_afr_qv();

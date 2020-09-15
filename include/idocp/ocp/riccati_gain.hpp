@@ -36,6 +36,14 @@ public:
 
   const Eigen::Block<const Eigen::MatrixXd> Kfrv() const;
 
+  const Eigen::Block<const Eigen::MatrixXd> Kfq() const;
+
+  const Eigen::Block<const Eigen::MatrixXd> Kfv() const;
+
+  const Eigen::Block<const Eigen::MatrixXd> Krq() const;
+
+  const Eigen::Block<const Eigen::MatrixXd> Krv() const;
+
   const Eigen::Block<const Eigen::MatrixXd> Kmuq() const;
 
   const Eigen::Block<const Eigen::MatrixXd> Kmuv() const;
@@ -43,6 +51,10 @@ public:
   const Eigen::VectorBlock<const Eigen::VectorXd> ka() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> kfr() const;
+
+  const Eigen::VectorBlock<const Eigen::VectorXd> kf() const;
+
+  const Eigen::VectorBlock<const Eigen::VectorXd> kr() const;
 
   const Eigen::VectorBlock<const Eigen::VectorXd> kmu() const;
 
@@ -57,8 +69,10 @@ public:
                           const Eigen::MatrixBase<VectorType2>& C);
 
 private:
-  static constexpr int kDimfr = 7;
-  int dimv_, dimfr_, dimc_;
+  static constexpr int kDimf = 5;
+  static constexpr int kDimr = 2;
+  static constexpr int kDimfr = kDimf + kDimr;
+  int dimv_, dimf_, dimr_, dimfr_, dimc_;
   Eigen::MatrixXd K_;
   Eigen::VectorXd k_;
 

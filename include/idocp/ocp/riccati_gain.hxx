@@ -17,6 +17,8 @@ inline RiccatiGain::RiccatiGain(const Robot& robot)
     k_(Eigen::VectorXd::Zero(
           robot.dimv()+kDimfr*robot.num_point_contacts()+robot.dim_passive())),
     dimv_(robot.dimv()),
+    dimf_(kDimf*robot.num_point_contacts()),
+    dimr_(kDimr*robot.num_point_contacts()),
     dimfr_(kDimfr*robot.num_point_contacts()),
     dimc_(robot.dim_passive()) {
 }
@@ -26,6 +28,8 @@ inline RiccatiGain::RiccatiGain()
   : K_(),
     k_(),
     dimv_(0),
+    dimf_(0),
+    dimr_(0),
     dimfr_(0),
     dimc_(0) {
 }
@@ -55,6 +59,26 @@ inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kfrv() const {
 }
 
 
+inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kfq() const {
+  return K_.block(dimv_, 0, dimf_, dimv_);
+}
+
+
+inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kfv() const {
+  return K_.block(dimv_, dimv_, dimf_, dimv_);
+}
+
+
+inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Krq() const {
+  return K_.block(dimv_+dimf_, 0, dimr_, dimv_);
+}
+
+
+inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Krv() const {
+  return K_.block(dimv_+dimf_, dimv_, dimr_, dimv_);
+}
+
+
 inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kmuq() const {
   return K_.block(dimv_+dimfr_, 0, dimc_, dimv_);
 }
@@ -65,17 +89,32 @@ inline const Eigen::Block<const Eigen::MatrixXd> RiccatiGain::Kmuv() const {
 }
 
 
-inline const Eigen::VectorBlock<const Eigen::VectorXd> RiccatiGain::ka() const {
+inline const Eigen::VectorBlock<const Eigen::VectorXd> 
+RiccatiGain::ka() const {
   return k_.head(dimv_);
 }
 
 
-inline const Eigen::VectorBlock<const Eigen::VectorXd> RiccatiGain::kfr() const {
+inline const Eigen::VectorBlock<const Eigen::VectorXd> 
+RiccatiGain::kfr() const {
   return k_.segment(dimv_, dimfr_);
 }
 
 
-inline const Eigen::VectorBlock<const Eigen::VectorXd> RiccatiGain::kmu() const {
+inline const Eigen::VectorBlock<const Eigen::VectorXd> 
+RiccatiGain::kf() const {
+  return k_.segment(dimv_, dimf_);
+}
+
+
+inline const Eigen::VectorBlock<const Eigen::VectorXd> 
+RiccatiGain::kr() const {
+  return k_.segment(dimv_+dimf_, dimr_);
+}
+
+
+inline const Eigen::VectorBlock<const Eigen::VectorXd> 
+RiccatiGain::kmu() const {
   return k_.segment(dimv_+dimfr_, dimc_);
 }
 

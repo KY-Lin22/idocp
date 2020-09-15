@@ -1,5 +1,6 @@
 #include "idocp/ocp/split_ocp.hpp"
 
+#include <algorithm>
 #include <assert.h>
 
 
@@ -108,7 +109,8 @@ void SplitOCP::linearizeOCP(Robot& robot, const double t, const double dtau,
   if (robot.has_contacts()) {
     contact_complementarity_.computeResidual(robot, dtau, s);
     contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
-    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, kkt_residual_);
+    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, 
+                                                  kkt_residual_);
   }
   cost_->computeStageCostDerivatives(robot, cost_data_, t, dtau, s, 
                                      kkt_residual_);
@@ -124,6 +126,8 @@ void SplitOCP::linearizeOCP(Robot& robot, const double t, const double dtau,
   kkt_matrix_.Qvq() = kkt_matrix_.Qqv().transpose();
   if (robot.has_contacts()) {
     kkt_matrix_.Qfa() = kkt_matrix_.Qaf().transpose();
+    kkt_matrix_.Qra() = kkt_matrix_.Qar().transpose();
+    kkt_matrix_.Qfr() = kkt_matrix_.Qrf().transpose();
   }
 }
 
@@ -144,11 +148,12 @@ void SplitOCP::backwardRiccatiRecursion(
                                    kkt_residual_.Fq(), kkt_residual_.Fv(), 
                                    riccati_next.sv, kkt_residual_.la());
   // Computes the matrix inversion
-  riccati_inverter_.invert(kkt_matrix_.Qafaf(), kkt_matrix_.Caf(), Ginv_);
+  riccati_inverter_.invert(kkt_matrix_.Q_afr_afr(), kkt_matrix_.C_afr(), Ginv_);
   // Computes the state feedback gain and feedforward terms
-  riccati_gain_.computeFeedbackGain(Ginv_, kkt_matrix_.Qafqv(), 
-                                    kkt_matrix_.Cqv());
-  riccati_gain_.computeFeedforward(Ginv_, kkt_residual_.laf(), kkt_residual_.C());
+  riccati_gain_.computeFeedbackGain(Ginv_, kkt_matrix_.Q_afr_qv(), 
+                                    kkt_matrix_.C_qv());
+  riccati_gain_.computeFeedforward(Ginv_, kkt_residual_.l_afr(), 
+                                   kkt_residual_.C());
   // Computes the Riccati factorization matrices
   // Qaq() means Qqa().transpose(). This holds for Qav(), Qfq(), Qfv().
   riccati.Pqq = kkt_matrix_.Qqq();
@@ -171,12 +176,12 @@ void SplitOCP::backwardRiccatiRecursion(
   riccati.sv.noalias() -= riccati_next.Pvv * kkt_residual_.Fv();
   riccati.sv.noalias() -= kkt_matrix_.Qav().transpose() * riccati_gain_.ka();
   if (has_contacts_) {
-    riccati.Pqq.noalias() += riccati_gain_.Kfq().transpose() * kkt_matrix_.Qfq();
-    riccati.Pqv.noalias() += riccati_gain_.Kfq().transpose() * kkt_matrix_.Qfv();
-    riccati.Pvq.noalias() += riccati_gain_.Kfv().transpose() * kkt_matrix_.Qfq();
-    riccati.Pvv.noalias() += riccati_gain_.Kfv().transpose() * kkt_matrix_.Qfv();
-    riccati.sq.noalias() -= kkt_matrix_.Qfq().transpose() * riccati_gain_.kf();
-    riccati.sv.noalias() -= kkt_matrix_.Qfv().transpose() * riccati_gain_.kf();
+    riccati.Pqq.noalias() += riccati_gain_.Kfrq().transpose() * kkt_matrix_.Q_fr_q();
+    riccati.Pqv.noalias() += riccati_gain_.Kfrq().transpose() * kkt_matrix_.Q_fr_v();
+    riccati.Pvq.noalias() += riccati_gain_.Kfrv().transpose() * kkt_matrix_.Q_fr_q();
+    riccati.Pvv.noalias() += riccati_gain_.Kfrv().transpose() * kkt_matrix_.Q_fr_v();
+    riccati.sq.noalias() -= kkt_matrix_.Q_fr_q().transpose() * riccati_gain_.kfr();
+    riccati.sv.noalias() -= kkt_matrix_.Q_fr_v().transpose() * riccati_gain_.kfr();
   }
   if (has_floating_base_) {
     riccati.Pqq.noalias() += riccati_gain_.Kmuq().transpose() * kkt_matrix_.Cq();
@@ -207,9 +212,9 @@ void SplitOCP::computeCondensedDirection(const Robot& robot, const double dtau,
                                          SplitDirection& d) {
   assert(dtau > 0);
   if (robot.has_contacts()) {
-    d.df() = riccati_gain_.kf();
-    d.df().noalias() += riccati_gain_.Kfq() * d.dq();
-    d.df().noalias() += riccati_gain_.Kfv() * d.dv();
+    d.dfr() = riccati_gain_.kfr();
+    d.dfr().noalias() += riccati_gain_.Kfrq() * d.dq();
+    d.dfr().noalias() += riccati_gain_.Kfrv() * d.dv();
   }
   if (robot.has_floating_base()) {
     d.dmu() = riccati_gain_.kmu();
@@ -263,9 +268,10 @@ std::pair<double, double> SplitOCP::costAndViolation(
   assert(dtau > 0);
   s_tmp_.a = s.a + step_size * d.da();
   if (robot.has_contacts()) {
-    s_tmp_.f_verbose = s.f_verbose + step_size * d.df();
-    s_tmp_.set_f();
-    robot.setContactForces(s_tmp_.f);
+    s_tmp_.f = s.f + step_size * d.df();
+    s_tmp_.r = s.r + step_size * d.dr();
+    s_tmp_.set_f_3D();
+    robot.setContactForces(s_tmp_.f_3D);
   }
   robot.integrateConfiguration(s.q, d.dq(), step_size, s_tmp_.q);
   s_tmp_.v = s.v + step_size * d.dv();
@@ -313,8 +319,9 @@ void SplitOCP::updatePrimal(Robot& robot, const double step_size,
   s.v.noalias() += step_size * d.dv();
   s.a.noalias() += step_size * d.da();
   if (robot.has_contacts()) {
-    s.f_verbose.noalias() += step_size * d.df();
-    s.set_f();
+    s.f.noalias() += step_size * d.df();
+    s.r.noalias() += step_size * d.dr();
+    s.set_f_3D();
   }
   s.u.noalias() += step_size * d.du;
   s.beta.noalias() += step_size * d.dbeta;
@@ -355,7 +362,7 @@ double SplitOCP::computeSquaredKKTErrorNorm(Robot& robot, const double t,
                                             const SplitSolution& s,
                                             const SplitSolution& s_next) {
   assert(dtau > 0);
-  kkt_residual_.setZeroMinimum();
+  kkt_residual_.setZero();
   if (use_kinematics_) {
     robot.updateKinematics(s.q, s.v, s.a);
   }

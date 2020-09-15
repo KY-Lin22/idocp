@@ -1,5 +1,6 @@
 #include "idocp/ocp/split_parnmpc.hpp"
 
+#include <algorithm>
 #include <assert.h>
 
 
@@ -107,7 +108,8 @@ void SplitParNMPC::coarseUpdate(Robot& robot, const double t, const double dtau,
   if (robot.has_contacts()) {
     contact_complementarity_.computeResidual(robot, dtau, s);
     contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
-    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, kkt_residual_);
+    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, 
+                                                  kkt_residual_);
   }
   cost_->computeStageCostDerivatives(robot, cost_data_, t, dtau, s, 
                                      kkt_residual_);
@@ -130,7 +132,8 @@ void SplitParNMPC::coarseUpdate(Robot& robot, const double t, const double dtau,
   s_new_coarse.gmm = s.gmm - d.dgmm();
   s_new_coarse.mu = s.mu - d.dmu();
   s_new_coarse.a = s.a - d.da();
-  s_new_coarse.f_verbose = s.f_verbose - d.df();
+  s_new_coarse.f = s.f - d.df();
+  s_new_coarse.r = s.r - d.dr();
   robot.integrateConfiguration(s.q, d.dq(), -1, s_new_coarse.q);
   s_new_coarse.v = s.v - d.dv();
 }
@@ -164,7 +167,8 @@ void SplitParNMPC::coarseUpdateTerminal(Robot& robot, const double t,
   if (robot.has_contacts()) {
     contact_complementarity_.computeResidual(robot, dtau, s);
     contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
-    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, kkt_residual_);
+    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, 
+                                                  kkt_residual_);
   }
   cost_->computeStageCostDerivatives(robot, cost_data_, t, dtau, s, 
                                      kkt_residual_);
@@ -188,7 +192,8 @@ void SplitParNMPC::coarseUpdateTerminal(Robot& robot, const double t,
   s_new_coarse.gmm = s.gmm - d.dgmm();
   s_new_coarse.mu = s.mu - d.dmu();
   s_new_coarse.a = s.a - d.da();
-  s_new_coarse.f_verbose = s.f_verbose - d.df();
+  s_new_coarse.f = s.f - d.df();
+  s_new_coarse.r = s.r - d.dr();
   robot.integrateConfiguration(s.q, d.dq(), -1, s_new_coarse.q);
   s_new_coarse.v = s.v - d.dv();
 }
@@ -234,7 +239,8 @@ void SplitParNMPC::backwardCorrectionParallel(const Robot& robot,
           * x_res_;
   s_new.mu.noalias() -= d.dmu();
   s_new.a.noalias() -= d.da();
-  s_new.f_verbose.noalias() -= d.df();
+  s_new.f.noalias() -= d.df();
+  s_new.r.noalias() -= d.dr();
   robot.integrateConfiguration(d.dq(), -1, s_new.q);
   s_new.v.noalias() -= d.dv();
 }
@@ -263,7 +269,8 @@ void SplitParNMPC::forwardCorrectionParallel(const Robot& robot,
   s_new.gmm.noalias() -= d.dgmm();
   s_new.mu.noalias() -= d.dmu();
   s_new.a.noalias() -= d.da();
-  s_new.f_verbose.noalias() -= d.df();
+  s_new.f.noalias() -= d.df();
+  s_new.r.noalias() -= d.dr();
 }
 
 
@@ -276,7 +283,8 @@ void SplitParNMPC::computePrimalAndDualDirection(const Robot& robot,
   d.dgmm() = s_new.gmm - s.gmm;
   d.dmu() = s_new.mu - s.mu;
   d.da() = s_new.a - s.a;
-  d.df() = s_new.f_verbose - s.f_verbose;
+  d.df() = s_new.f - s.f;
+  d.dr() = s_new.r - s.r;
   robot.subtractConfiguration(s_new.q, s.q, d.dq());
   d.dv() = s_new.v - s.v;
   robot_dynamics_.computeCondensedDirection(dtau, kkt_matrix_, kkt_residual_, d);
@@ -325,9 +333,10 @@ std::pair<double, double> SplitParNMPC::costAndViolation(
   assert(v_prev.size() == robot.dimv());
   s_tmp.a = s.a + step_size * d.da();
   if (robot.has_contacts()) {
-    s_tmp.f_verbose = s.f_verbose + step_size * d.df();
-    s_tmp.set_f();
-    robot.setContactForces(s_tmp.f);
+    s_tmp.f = s.f + step_size * d.df();
+    s_tmp.r = s.r + step_size * d.dr();
+    s_tmp.set_f_3D();
+    robot.setContactForces(s_tmp.f_3D);
   }
   robot.integrateConfiguration(s.q, d.dq(), step_size, s_tmp.q);
   s_tmp.v = s.v + step_size * d.dv();
@@ -359,9 +368,10 @@ std::pair<double, double> SplitParNMPC::costAndViolation(
   assert(dtau > 0);
   s_tmp.a = s.a + step_size * d.da();
   if (robot.has_contacts()) {
-    s_tmp.f_verbose = s.f_verbose + step_size * d.df();
-    s_tmp.set_f();
-    robot.setContactForces(s_tmp.f);
+    s_tmp.f = s.f + step_size * d.df();
+    s_tmp.r = s.r + step_size * d.dr();
+    s_tmp.set_f_3D();
+    robot.setContactForces(s_tmp.f_3D);
   }
   robot.integrateConfiguration(s.q, d.dq(), step_size, s_tmp.q);
   s_tmp.v = s.v + step_size * d.dv();
@@ -410,8 +420,10 @@ std::pair<double, double> SplitParNMPC::costAndViolationTerminal(
   assert(dtau > 0);
   s_tmp.a = s.a + step_size * d.da();
   if (robot.has_contacts()) {
-    s_tmp.f_verbose = s.f_verbose + step_size * d.df();
-    robot.setContactForces(s_tmp.f);
+    s_tmp.f = s.f + step_size * d.df();
+    s_tmp.r = s.r + step_size * d.dr();
+    s_tmp.set_f_3D();
+    robot.setContactForces(s_tmp.f_3D);
   }
   robot.integrateConfiguration(s.q, d.dq(), step_size, s_tmp.q);
   s_tmp.v = s.v + step_size * d.dv();
@@ -454,8 +466,9 @@ void SplitParNMPC::updatePrimal(Robot& robot, const double step_size,
   s.gmm.noalias() += step_size * d.dgmm();
   s.mu.noalias() += step_size * d.dmu();
   s.a.noalias() += step_size * d.da();
-  s.f_verbose.noalias() += step_size * d.df();
-  s.set_f();
+  s.f.noalias() += step_size * d.df();
+  s.r.noalias() += step_size * d.dr();
+  s.set_f_3D();
   robot.integrateConfiguration(d.dq(), step_size, s.q);
   s.v.noalias() += step_size * d.dv();
   s.u.noalias() += step_size * d.du;
@@ -512,7 +525,7 @@ double SplitParNMPC::computeSquaredKKTErrorNorm(Robot& robot, const double t,
   assert(dtau > 0);
   assert(q_prev.size() == robot.dimq());
   assert(v_prev.size() == robot.dimv());
-  kkt_residual_.setZeroMinimum();
+  kkt_residual_.setZero();
   if (use_kinematics_) {
     robot.updateKinematics(s.q, s.v, s.a);
   }
@@ -543,7 +556,7 @@ double SplitParNMPC::computeSquaredKKTErrorNormTerminal(
   assert(dtau > 0);
   assert(q_prev.size() == robot.dimq());
   assert(v_prev.size() == robot.dimv());
-  kkt_residual_.setZeroMinimum();
+  kkt_residual_.setZero();
   if (use_kinematics_) {
     robot.updateKinematics(s.q, s.v, s.a);
   }
