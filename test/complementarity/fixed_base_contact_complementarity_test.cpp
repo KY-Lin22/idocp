@@ -219,6 +219,38 @@ TEST_F(FixedBaseContactComplementarityTest, augmentDualResidual) {
   EXPECT_TRUE(kkt_residual.KKT_residual.isApprox(kkt_residual_ref.KKT_residual));
 }
 
+TEST_F(FixedBaseContactComplementarityTest, computeResidual) {
+  SplitSolution s(robot_);
+  s.q = Eigen::VectorXd::Random(robot_.dimq());
+  robot_.generateFeasibleConfiguration(s.q);
+  s.v = Eigen::VectorXd::Random(robot_.dimv());
+  s.a = Eigen::VectorXd::Random(robot_.dimv());
+  robot_.updateKinematics(s.q, s.v, s.a);
+  s.f = Eigen::VectorXd::Random(5*robot_.num_point_contacts()).array().abs();
+  s.r = Eigen::VectorXd::Random(2*robot_.num_point_contacts()).array().abs();
+  s.set_f_3D();
+  contact_complementarity_.computeResidual(robot_, dtau_, s);
+  const double L1Norm = contact_complementarity_.residualL1Nrom();
+  const double squaredNorm = contact_complementarity_.squaredKKTErrorNorm();
+  force_inequality_.computePrimalResidual(robot_, dtau_, s, force_data_);
+  baum_inequality_.computePrimalResidual(robot_, dtau_, s, baum_data_);
+  const double L1Norm_ref = force_data_.residual.lpNorm<1>() 
+                              + baum_data_.residual.lpNorm<1>() 
+                              + Eigen::VectorXd::Constant(dimc_, barrier_).lpNorm<1>() 
+                              + Eigen::VectorXd::Constant(dimc_, barrier_).lpNorm<1>() 
+                              + Eigen::VectorXd::Constant(dimc_, barrier_).lpNorm<1>() 
+                              + Eigen::VectorXd::Constant(dimc_, max_complementarity_violation_).lpNorm<1>();
+  const double squaredNorm_ref = force_data_.residual.squaredNorm() 
+                                  + baum_data_.residual.squaredNorm() 
+                                  + Eigen::VectorXd::Constant(dimc_, barrier_).squaredNorm() 
+                                  + Eigen::VectorXd::Constant(dimc_, barrier_).squaredNorm() 
+                                  + Eigen::VectorXd::Constant(dimc_, barrier_).squaredNorm() 
+                                  + Eigen::VectorXd::Constant(dimc_, max_complementarity_violation_).squaredNorm();
+  EXPECT_DOUBLE_EQ(L1Norm, L1Norm_ref);
+  EXPECT_DOUBLE_EQ(squaredNorm, squaredNorm_ref);
+}
+
+
 } // namespace idocp
 
 

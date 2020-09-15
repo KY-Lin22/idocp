@@ -1,6 +1,8 @@
 #include "idocp/complementarity/contact_force_inequality.hpp"
 #include "idocp/constraints/pdipm_func.hpp"
 
+#include <exception>
+#include <iostream>
 #include <assert.h>
 
 namespace idocp {
@@ -11,6 +13,16 @@ inline ContactForceInequality::ContactForceInequality(const Robot& robot,
     dimc_(kDimc*robot.num_point_contacts()),
     mu_(mu) {
   f_rsc_.setZero();
+  try {
+    if (mu < 0) {
+      throw std::out_of_range(
+          "invalid argment: mu must be positive");
+    }
+  }
+  catch(const std::exception& e) {
+    std::cerr << e.what() << '\n';
+    std::exit(EXIT_FAILURE);
+  }
 }
 
 
@@ -180,6 +192,16 @@ inline void ContactForceInequality::computeSlackDirection(
 
 
 inline void ContactForceInequality::set_mu(const double mu) {
+  try {
+    if (mu < 0) {
+      throw std::out_of_range(
+          "invalid argment: mu must be positive");
+    }
+  }
+  catch(const std::exception& e) {
+    std::cerr << e.what() << '\n';
+    std::exit(EXIT_FAILURE);
+  }
   mu_ = mu;
 }
 

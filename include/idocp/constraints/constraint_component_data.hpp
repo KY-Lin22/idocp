@@ -2,6 +2,8 @@
 #define IDOCP_CONSTRAINT_COMPONENT_DATA_HPP_
 
 #include <vector>
+#include <exception>
+#include <iostream>
 
 #include "Eigen/Core"
 
@@ -16,7 +18,17 @@ public:
       residual(Eigen::VectorXd::Zero(dimc)),
       duality(Eigen::VectorXd::Zero(dimc)),
       dslack(Eigen::VectorXd::Zero(dimc)),
-      ddual(Eigen::VectorXd::Zero(dimc)) {
+      ddual(Eigen::VectorXd::Zero(dimc)),
+      dimc_(dimc) {
+    try {
+      if (dimc < 0) {
+        throw std::out_of_range("invalid argment: dimc must not be negative");
+      }
+    }
+    catch(const std::exception& e) {
+      std::cerr << e.what() << '\n';
+      std::exit(EXIT_FAILURE);
+    }
   }
 
   ConstraintComponentData()
@@ -25,7 +37,8 @@ public:
       residual(),
       duality(),
       dslack(),
-      ddual() {
+      ddual(),
+      dimc_(0) {
   }
 
   ~ConstraintComponentData() {
@@ -44,7 +57,14 @@ public:
   ConstraintComponentData& operator=(ConstraintComponentData&&) noexcept 
       = default;
 
+  int dimc() const {
+    return dimc_;
+  }
+
   Eigen::VectorXd slack, dual, residual, duality, dslack, ddual;
+
+private:
+  int dimc_;
 
 };
 

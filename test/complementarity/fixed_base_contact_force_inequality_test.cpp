@@ -197,7 +197,6 @@ TEST_F(FixedBaseContactForceInequalityTest, computeSlackDirection) {
   EXPECT_TRUE(data.dslack.isApprox(dslack_ref));
 }
 
-
 } // namespace idocp
 
 

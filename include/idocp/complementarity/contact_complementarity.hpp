@@ -76,6 +76,11 @@ public:
 
   void set_mu(const double mu);
 
+  void set_barrier(const double barrier);
+
+  void set_maxComplementarityViolation(
+      const double max_complementarity_violation);
+
 private:
   int dimc_; 
   double max_complementarity_violation_, barrier_, fraction_to_boundary_rate_;
@@ -85,6 +90,7 @@ private:
                           complementarity_data_;
   Eigen::VectorXd s_g_, s_h_, g_w_, g_ss_, g_st_, g_tt_, 
                   condensed_force_residual_, condensed_baumgarte_residual_;
+  bool has_contacts_;
 
 };
 

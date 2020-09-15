@@ -172,7 +172,6 @@ TEST_F(FloatingBaseContactComplementarityTest, augmentDualResidual) {
     if (force_data_.dual.coeff(i) < barrier_) force_data_.dual.coeffRef(i) = barrier_;
     if (baum_data_.dual.coeff(i) < barrier_) baum_data_.dual.coeffRef(i) = barrier_;
   }
-  std::cout << "AAA" << std::endl;
   Eigen::MatrixXd force_jac_df(Eigen::MatrixXd::Zero(dimc_, s.f.size()));
   for (int i=0; i<robot_.num_point_contacts(); ++i) {
     force_jac_df(6*i+0, 5*i+0) = dtau_;
@@ -181,14 +180,14 @@ TEST_F(FloatingBaseContactComplementarityTest, augmentDualResidual) {
     force_jac_df(6*i+3, 5*i+3) = dtau_;
     force_jac_df(6*i+4, 5*i+4) = dtau_;
     force_jac_df(6*i+5, 5*i+0) = - 2 * dtau_ * s.f_3D(3*i+0);
-    force_jac_df(6*i+5, 5*i+1) = 2 * dtau_ * s.f_3D(3*i+0);
+    force_jac_df(6*i+5, 5*i+1) =   2 * dtau_ * s.f_3D(3*i+0);
     force_jac_df(6*i+5, 5*i+2) = - 2 * dtau_ * s.f_3D(3*i+1);
-    force_jac_df(6*i+5, 5*i+3) = 2 * dtau_ * s.f_3D(3*i+1);
-    force_jac_df(6*i+5, 5*i+4) = 2 * mu_ * mu_ * dtau_ * s.f_3D(3*i+2);
+    force_jac_df(6*i+5, 5*i+3) =   2 * dtau_ * s.f_3D(3*i+1);
+    force_jac_df(6*i+5, 5*i+4) =   2 * mu_ * mu_ * dtau_ * s.f_3D(3*i+2);
   }
-  Eigen::MatrixXd dbaum_dq(Eigen::MatrixXd::Zero(s.f_3D.size(), robot_.dimv()));
-  Eigen::MatrixXd dbaum_dv(Eigen::MatrixXd::Zero(s.f_3D.size(), robot_.dimv()));
-  Eigen::MatrixXd dbaum_da(Eigen::MatrixXd::Zero(s.f_3D.size(), robot_.dimv()));
+  Eigen::MatrixXd dbaum_dq(Eigen::MatrixXd::Zero(s.f.size(), robot_.dimv()));
+  Eigen::MatrixXd dbaum_dv(Eigen::MatrixXd::Zero(s.f.size(), robot_.dimv()));
+  Eigen::MatrixXd dbaum_da(Eigen::MatrixXd::Zero(s.f.size(), robot_.dimv()));
   robot_.computeBaumgarteDerivatives(dbaum_dq, dbaum_dv, dbaum_da); 
   Eigen::MatrixXd baum_jac_da(Eigen::MatrixXd::Zero(dimc_, robot_.dimv()));
   Eigen::MatrixXd baum_jac_dr(Eigen::MatrixXd::Zero(dimc_, s.r.size()));

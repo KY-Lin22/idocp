@@ -488,6 +488,42 @@ TEST_F(FloatingBaseBaumgarteInequalityTest, computeSlackDirection) {
 }
 
 
+TEST_F(FloatingBaseBaumgarteInequalityTest, withoutContacts) {
+  SplitSolution s(robot_);
+  const std::string urdf = "../urdf/anymal/anymal.urdf";
+  robot_ = Robot(urdf);
+  baumgarte_inequality_ = BaumgarteInequality(robot_);
+  EXPECT_TRUE(baumgarte_inequality_.isFeasible(robot_, s));
+  const int dimc = 6*robot_.num_point_contacts();
+  ConstraintComponentData data(dimc);
+  baumgarte_inequality_.setSlack(robot_, dtau_, s, data);
+  baumgarte_inequality_.computePrimalResidual(robot_, dtau_, s, data);
+  EXPECT_TRUE(data.residual.isZero());
+  KKTResidual kkt_residual(robot_);
+  baumgarte_inequality_.augmentDualResidual(robot_, dtau_, s, data, 
+                                                kkt_residual);
+  EXPECT_TRUE(kkt_residual.KKT_residual.isZero());
+  KKTMatrix kkt_matrix(robot_);
+  Eigen::VectorXd diag = Eigen::VectorXd::Random(dimc);
+  baumgarte_inequality_.augmentCondensedHessian(robot_, dtau_, s, diag, 
+                                                kkt_matrix);
+  baumgarte_inequality_.augmentCondensedResidual(robot_, dtau_, s, diag, 
+                                                 kkt_residual);
+  EXPECT_TRUE(kkt_matrix.costHessian().isZero());
+  EXPECT_TRUE(kkt_matrix.constraintsJacobian().isZero());
+  EXPECT_TRUE(kkt_residual.KKT_residual.isZero());
+  const double mu = 1;
+  ContactForceInequality force_inequality(robot_, mu);
+  baumgarte_inequality_.augmentComplementarityCondensedHessian(robot_, dtau_, s, force_inequality, diag, kkt_matrix);
+  EXPECT_TRUE(kkt_matrix.costHessian().isZero());
+  EXPECT_TRUE(kkt_matrix.constraintsJacobian().isZero());
+  SplitDirection d(robot_);
+  d.df() = Eigen::VectorXd::Random(5*robot_.num_point_contacts());
+  baumgarte_inequality_.computeSlackDirection(robot_, dtau_, s, d, data);
+  EXPECT_TRUE(data.dslack.isZero());
+}
+
+
 } // namespace idocp
 
 
