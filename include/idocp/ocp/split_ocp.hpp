@@ -16,7 +16,7 @@
 #include "idocp/constraints/constraints.hpp"
 #include "idocp/ocp/state_equation.hpp"
 #include "idocp/ocp/robot_dynamics.hpp"
-#include "idocp/complementarity/contact_complementarity.hpp"
+#include "idocp/complementarity/contact_complementarity_constraint.hpp"
 #include "idocp/ocp/riccati_factorization.hpp"
 #include "idocp/ocp/riccati_gain.hpp"
 #include "idocp/ocp/riccati_matrix_factorizer.hpp"
@@ -258,7 +258,7 @@ private:
   KKTMatrix kkt_matrix_;
   StateEquation state_equation_;
   RobotDynamics robot_dynamics_;
-  ContactComplementarity contact_complementarity_;
+  ContactComplementarityConstraint contact_constraint_;
   RiccatiGain riccati_gain_;
   RiccatiMatrixFactorizer riccati_factorizer_;
   RiccatiMatrixInverter riccati_inverter_;

@@ -67,10 +67,10 @@ void BenchmarkWithContacts() {
   ocp_benchmarker.setInitialGuessSolution(t, q, v);
   ocp_benchmarker.testConvergence(t, q, v, 100, true);
   // ocp_benchmarker.testCPUTime(t, q, v);
-  // idocp::OCPBenchmarker<idocp::ParNMPC> parnmpc_benchmarker("ParNMPC for anymal with contacts",
-  //                                                           robot, cost, constraints, T, N, num_proc);
-  // parnmpc_benchmarker.setInitialGuessSolution(t, q, v);
-  // parnmpc_benchmarker.testConvergence(t, q, v, 30, false);
+  idocp::OCPBenchmarker<idocp::ParNMPC> parnmpc_benchmarker("ParNMPC for anymal with contacts",
+                                                            robot, cost, constraints, T, N, num_proc);
+  parnmpc_benchmarker.setInitialGuessSolution(t, q, v);
+  parnmpc_benchmarker.testConvergence(t, q, v, 100, true);
   // parnmpc_benchmarker.testCPUTime(t, q, v);
 }
 

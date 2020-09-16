@@ -33,6 +33,9 @@ OCP::OCP(const Robot& robot, const std::shared_ptr<CostFunction>& cost,
   assert(num_proc > 0);
   for (int i=0; i<=N; ++i) {
     robot.normalizeConfiguration(s_[i].q);
+    s_[i].f.fill(1.0e-04);
+    s_[i].set_f_3D();
+    s_[i].r.fill(1.0e-04);
   }
   bool feasible = isCurrentSolutionFeasible();
   initConstraints();

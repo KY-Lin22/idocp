@@ -16,7 +16,7 @@
 #include "idocp/constraints/constraints.hpp"
 #include "idocp/ocp/state_equation.hpp"
 #include "idocp/ocp/robot_dynamics.hpp"
-#include "idocp/complementarity/contact_complementarity.hpp"
+#include "idocp/complementarity/contact_complementarity_constraint.hpp"
 
 
 namespace idocp {
@@ -449,7 +449,7 @@ private:
   KKTMatrix kkt_matrix_;
   StateEquation state_equation_;
   RobotDynamics robot_dynamics_;
-  ContactComplementarity contact_complementarity_;
+  ContactComplementarityConstraint contact_constraint_;
   int dimv_, dimx_, dimKKT_;
   Eigen::MatrixXd kkt_matrix_inverse_;
   Eigen::VectorXd x_res_; /// @brief Residual of state and costate used in the forward and backward correction.

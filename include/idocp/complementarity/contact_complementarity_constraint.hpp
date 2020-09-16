@@ -21,9 +21,9 @@ public:
 
   ContactComplementarityConstraint(
       const Robot& robot, const double mu,  
-      const double max_complementarity_violation=1.0e-04, 
+      const double max_complementarity_violation=1.0e-02, 
       const double barrier=1.0e-08, 
-      const double fraction_to_boundary_rate=0.995);
+      const double fraction_to_boundary_rate=0.95);
 
   ContactComplementarityConstraint();
 

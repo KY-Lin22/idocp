@@ -36,6 +36,9 @@ ParNMPC::ParNMPC(const Robot& robot, const std::shared_ptr<CostFunction>& cost,
     const int robot_id = omp_get_thread_num();
     robot.normalizeConfiguration(s_[i].q);
     robot.normalizeConfiguration(s_new_[i].q);
+    s_[i].f.fill(1.0e-04);
+    s_[i].set_f_3D();
+    s_[i].r.fill(1.0e-04);
   }
   bool feasible = isCurrentSolutionFeasible();
   initConstraints();

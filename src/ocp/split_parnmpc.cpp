@@ -17,7 +17,7 @@ SplitParNMPC::SplitParNMPC(const Robot& robot,
     kkt_matrix_(robot),
     state_equation_(robot),
     robot_dynamics_(robot),
-    contact_complementarity_(robot, 1),
+    contact_constraint_(robot, 1),
     dimv_(robot.dimv()),
     dimx_(2*robot.dimv()),
     dimKKT_(kkt_residual_.dimKKT()),
@@ -42,7 +42,7 @@ SplitParNMPC::SplitParNMPC()
     kkt_matrix_(),
     state_equation_(),
     robot_dynamics_(),
-    contact_complementarity_(),
+    contact_constraint_(),
     dimv_(0),
     dimx_(0),
     dimKKT_(0),
@@ -58,7 +58,7 @@ SplitParNMPC::~SplitParNMPC() {
 
 
 bool SplitParNMPC::isFeasible(Robot& robot, const SplitSolution& s) {
-  if (!contact_complementarity_.isFeasible(robot, s)) {
+  if (!contact_constraint_.isFeasible(robot, s)) {
     return false;
   }
   if (!constraints_->isFeasible(robot, constraints_data_, s)) {
@@ -72,7 +72,7 @@ void SplitParNMPC::initConstraints(Robot& robot, const int time_step,
                                    const double dtau, const SplitSolution& s) {
   assert(time_step >= 0);
   assert(dtau > 0);
-  contact_complementarity_.setSlackAndDual(robot, dtau, s);
+  contact_constraint_.setSlackAndDual(robot, dtau, s);
   constraints_->setSlackAndDual(robot, constraints_data_, dtau, s);
 }
 
@@ -106,9 +106,9 @@ void SplitParNMPC::coarseUpdate(Robot& robot, const double t, const double dtau,
                                         kkt_residual_);
   // forms the KKT matrix and KKT residual
   if (robot.has_contacts()) {
-    contact_complementarity_.computeResidual(robot, dtau, s);
-    contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
-    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, 
+    contact_constraint_.computeResidual(robot, dtau, s);
+    contact_constraint_.augmentDualResidual(robot, dtau, s, kkt_residual_);
+    contact_constraint_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, 
                                                   kkt_residual_);
   }
   cost_->computeStageCostDerivatives(robot, cost_data_, t, dtau, s, 
@@ -165,9 +165,9 @@ void SplitParNMPC::coarseUpdateTerminal(Robot& robot, const double t,
                                         kkt_residual_);
   // forms the KKT matrix and KKT residual
   if (robot.has_contacts()) {
-    contact_complementarity_.computeResidual(robot, dtau, s);
-    contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
-    contact_complementarity_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, 
+    contact_constraint_.computeResidual(robot, dtau, s);
+    contact_constraint_.augmentDualResidual(robot, dtau, s, kkt_residual_);
+    contact_constraint_.condenseSlackAndDual(robot, dtau, s, kkt_matrix_, 
                                                   kkt_residual_);
   }
   cost_->computeStageCostDerivatives(robot, cost_data_, t, dtau, s, 
@@ -288,20 +288,20 @@ void SplitParNMPC::computePrimalAndDualDirection(const Robot& robot,
   robot.subtractConfiguration(s_new.q, s.q, d.dq());
   d.dv() = s_new.v - s.v;
   robot_dynamics_.computeCondensedDirection(dtau, kkt_matrix_, kkt_residual_, d);
-  contact_complementarity_.computeSlackAndDualDirection(robot, dtau, s, d);
+  contact_constraint_.computeSlackAndDualDirection(robot, dtau, s, d);
   constraints_->computeSlackAndDualDirection(robot, constraints_data_, dtau, d);
 }
 
  
 double SplitParNMPC::maxPrimalStepSize() {
-  const double max_step_size1 = contact_complementarity_.maxSlackStepSize();
+  const double max_step_size1 = contact_constraint_.maxSlackStepSize();
   const double max_step_size2 = constraints_->maxSlackStepSize(constraints_data_);
   return std::min(max_step_size1, max_step_size2);
 }
 
 
 double SplitParNMPC::maxDualStepSize() {
-  const double max_step_size1 = contact_complementarity_.maxDualStepSize();
+  const double max_step_size1 = contact_constraint_.maxDualStepSize();
   const double max_step_size2 = constraints_->maxDualStepSize(constraints_data_);
   return std::min(max_step_size1, max_step_size2);
 }
@@ -316,7 +316,7 @@ std::pair<double, double> SplitParNMPC::costAndViolation(
   double violation = 0;
   violation += state_equation_.violationL1Norm(kkt_residual_);
   violation += robot_dynamics_.violationL1Norm(dtau, s, kkt_residual_);
-  violation += contact_complementarity_.residualL1Nrom();
+  violation += contact_constraint_.residualL1Nrom();
   violation += constraints_->residualL1Nrom(robot, constraints_data_, dtau, s);
   return std::make_pair(cost, violation);
 }
@@ -352,7 +352,7 @@ std::pair<double, double> SplitParNMPC::costAndViolation(
       robot, dtau, q_prev, v_prev, s_tmp, kkt_residual_);
   violation += robot_dynamics_.computeViolationL1Norm(robot, dtau, s_tmp, 
                                                       kkt_residual_);
-  violation += contact_complementarity_.computeResidualL1Nrom(robot, dtau, s_tmp);
+  violation += contact_constraint_.computeResidualL1Nrom(robot, dtau, s_tmp);
   violation += constraints_->residualL1Nrom(robot, constraints_data_, dtau, 
                                             s_tmp);
   return std::make_pair(cost, violation);
@@ -388,7 +388,7 @@ std::pair<double, double> SplitParNMPC::costAndViolation(
       s_tmp, kkt_residual_);
   violation += robot_dynamics_.computeViolationL1Norm(robot, dtau, s_tmp, 
                                                       kkt_residual_);
-  violation += contact_complementarity_.computeResidualL1Nrom(robot, dtau, s_tmp);
+  violation += contact_constraint_.computeResidualL1Nrom(robot, dtau, s_tmp);
   violation += constraints_->residualL1Nrom(robot, constraints_data_, dtau, 
                                             s_tmp);
   return std::make_pair(cost, violation);
@@ -405,7 +405,7 @@ std::pair<double, double> SplitParNMPC::costAndViolationTerminal(
   double violation = 0;
   violation += state_equation_.violationL1Norm(kkt_residual_);
   violation += robot_dynamics_.violationL1Norm(dtau, s, kkt_residual_);
-  violation += contact_complementarity_.residualL1Nrom();
+  violation += contact_constraint_.residualL1Nrom();
   violation += constraints_->residualL1Nrom(robot, constraints_data_, dtau, s);
   return std::make_pair(cost, violation);
 }
@@ -441,7 +441,7 @@ std::pair<double, double> SplitParNMPC::costAndViolationTerminal(
       s_tmp, kkt_residual_);
   violation += robot_dynamics_.computeViolationL1Norm(robot, dtau, s_tmp, 
                                                       kkt_residual_);
-  violation += contact_complementarity_.computeResidualL1Nrom(robot, dtau, s_tmp);
+  violation += contact_constraint_.computeResidualL1Nrom(robot, dtau, s_tmp);
   violation += constraints_->residualL1Nrom(robot, constraints_data_, dtau, 
                                             s_tmp);
   return std::make_pair(cost, violation);
@@ -451,7 +451,7 @@ std::pair<double, double> SplitParNMPC::costAndViolationTerminal(
 void SplitParNMPC::updateDual(const double step_size) {
   assert(step_size > 0);
   assert(step_size <= 1);
-  contact_complementarity_.updateDual(step_size);
+  contact_constraint_.updateDual(step_size);
   constraints_->updateDual(constraints_data_, step_size);
 }
 
@@ -473,7 +473,7 @@ void SplitParNMPC::updatePrimal(Robot& robot, const double step_size,
   s.v.noalias() += step_size * d.dv();
   s.u.noalias() += step_size * d.du;
   s.beta.noalias() += step_size * d.dbeta;
-  contact_complementarity_.updateSlack(step_size);
+  contact_constraint_.updateSlack(step_size);
   constraints_->updateSlack(constraints_data_, step_size);
 }
 
@@ -504,7 +504,7 @@ double SplitParNMPC::condensedSquaredKKTErrorNorm(Robot& robot, const double t,
   assert(dtau > 0);
   double error = kkt_residual_.KKT_residual.squaredNorm();
   error += constraints_->squaredKKTErrorNorm(robot, constraints_data_, dtau, s);
-  error += contact_complementarity_.squaredKKTErrorNorm();
+  error += contact_constraint_.squaredKKTErrorNorm();
   return error;
 }
 
@@ -539,12 +539,12 @@ double SplitParNMPC::computeSquaredKKTErrorNorm(Robot& robot, const double t,
   state_equation_.linearizeBackwardEuler(robot, dtau, q_prev, v_prev, s, 
                                          s_next.lmd, s_next.gmm, s_next.q, 
                                          kkt_matrix_, kkt_residual_);
-  contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
+  contact_constraint_.augmentDualResidual(robot, dtau, s, kkt_residual_);
   robot_dynamics_.augmentRobotDynamics(robot, dtau, s, kkt_matrix_, 
                                        kkt_residual_);
   double error = kkt_residual_.squaredKKTErrorNorm(dtau);
   error += constraints_->squaredKKTErrorNorm(robot, constraints_data_, dtau, s);
-  error += contact_complementarity_.computeSquaredKKTErrorNorm(robot, dtau, s);
+  error += contact_constraint_.computeSquaredKKTErrorNorm(robot, dtau, s);
   return error;
 }
 
@@ -570,12 +570,12 @@ double SplitParNMPC::computeSquaredKKTErrorNormTerminal(
                                     kkt_residual_.lu);
   state_equation_.linearizeBackwardEulerTerminal(robot, dtau, q_prev, v_prev, s, 
                                                  kkt_matrix_, kkt_residual_);
-    contact_complementarity_.augmentDualResidual(robot, dtau, s, kkt_residual_);
+  contact_constraint_.augmentDualResidual(robot, dtau, s, kkt_residual_);
   robot_dynamics_.augmentRobotDynamics(robot, dtau, s, kkt_matrix_, 
                                        kkt_residual_);
   double error = kkt_residual_.squaredKKTErrorNorm(dtau);
   error += constraints_->squaredKKTErrorNorm(robot, constraints_data_, dtau, s);
-  error += contact_complementarity_.computeSquaredKKTErrorNorm(robot, dtau, s);
+  error += contact_constraint_.computeSquaredKKTErrorNorm(robot, dtau, s);
   return error;
 }
 

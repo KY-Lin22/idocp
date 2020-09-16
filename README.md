@@ -5,7 +5,7 @@
 
 ## Features for efficient optimal control 
 - Solves the optimal control problem for rigid body systems based on inverse dynamics.
-- Baumgarte-like relaxation for contact-implicit complementarity problem.
+- Baumgarte-like relaxation for contact-complementarity constraints.
 - Sparsity-exploiting Riccati recursion / Parallel Newton's method (ParNMPC)  for computing the Newton direction.
 - Primal-dual interior point method for inequality constraints and complementarity constraints.
 - Filter line-search method.
@@ -14,8 +14,10 @@
 ## Requirements
 - Ubuntu 
 - gcc
-- [pinocchio](https://github.com/stack-of-tasks/pinocchio) (instruction for installation is found [here](https://stack-of-tasks.github.io/pinocchio/download.html))
+- CMake
+- pkg-condfig
 - [Eigen3](https://stack-of-tasks.github.io/pinocchio/download.html)  
+- [pinocchio](https://github.com/stack-of-tasks/pinocchio) (instruction for installation is found [here](https://stack-of-tasks.github.io/pinocchio/download.html))
 
 ## Installation 
 1. Install Eigen3 by 

@@ -26,7 +26,13 @@ inline ContactComplementarityConstraint::ContactComplementarityConstraint(
                                 max_complementarity_violation_, barrier_),
     contact_force_data_(dimc_),
     baumgarte_data_(dimc_),
-    complementarity_data_(dimc_) {
+    complementarity_data_(dimc_),
+    condensed_hessian_diagonal_contact_force_(Eigen::VectorXd::Zero(dimc_)), 
+    condensed_hessian_diagonal_baumgarte_(Eigen::VectorXd::Zero(dimc_)),
+    condensed_hessian_diagonal_contact_force_baumgarte_(
+        Eigen::VectorXd::Zero(dimc_)),
+    condensed_dual_contact_force_(Eigen::VectorXd::Zero(dimc_)), 
+    condensed_dual_baumgarte_(Eigen::VectorXd::Zero(dimc_)) {
   try {
     if (mu <= 0) {
       throw std::out_of_range("invalid argment: mu must be positive");
@@ -35,10 +41,6 @@ inline ContactComplementarityConstraint::ContactComplementarityConstraint(
       throw std::out_of_range(
           "invalid argment: max_complementarity_violation must be positive");
     }
-    if (max_complementarity_violation_ > 1) {
-      throw std::out_of_range(
-          "invalid argment: max_complementarity_violation must be less than 1");
-    }
     if (barrier <- 0) {
       throw std::out_of_range(
           "invalid argment: barrirer must be positive");
@@ -46,6 +48,10 @@ inline ContactComplementarityConstraint::ContactComplementarityConstraint(
     if (fraction_to_boundary_rate < 0) {
       throw std::out_of_range(
           "invalid argment: fraction_to_boundary_rate must be positive");
+    }
+    if (fraction_to_boundary_rate > 1) {
+      throw std::out_of_range(
+          "invalid argment: fraction_to_boundary_rate must be less than 1");
     }
   }
   catch(const std::exception& e) {
@@ -65,7 +71,12 @@ inline ContactComplementarityConstraint::ContactComplementarityConstraint()
     complementarity_constraint_(),
     contact_force_data_(),
     baumgarte_data_(),
-    complementarity_data_() {
+    complementarity_data_(),
+    condensed_hessian_diagonal_contact_force_(), 
+    condensed_hessian_diagonal_baumgarte_(),
+    condensed_hessian_diagonal_contact_force_baumgarte_(),
+    condensed_dual_contact_force_(), 
+    condensed_dual_baumgarte_() {
 }
 
 
@@ -93,6 +104,8 @@ inline void ContactComplementarityConstraint::setSlackAndDual(
   complementarity_constraint_.setSlackAndDual(contact_force_data_, 
                                               baumgarte_data_, 
                                               complementarity_data_);
+  // contact_force_data_.dual.array() = barrier_;
+  // baumgarte_data_.dual.array() = barrier_;
 }
 
 
@@ -340,9 +353,9 @@ inline void ContactComplementarityConstraint::set_fraction_to_boundary_rate(
       throw std::out_of_range(
           "invalid argment: max_complementarity_violation must be positive");
     }
-    if (max_complementarity_violation_ > 1) {
+    if (fraction_to_boundary_rate > 1) {
       throw std::out_of_range(
-          "invalid argment: max_complementarity_violation must be less than 1");
+          "invalid argment: fraction_to_boundary_rate must be less than 1");
     }
   }
   catch(const std::exception& e) {
